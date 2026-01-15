@@ -131,7 +131,7 @@ export const getDocuments = async (req, res, next) => {
             },
             {
                 $sort: {
-                    uploadData: -1
+                    uploadDate: -1
                 }
             }
         ]);
@@ -206,7 +206,7 @@ export const deleteDocument = async (req, res, next) => {
         });
 
         if(!document) {
-            return res.status(400).json({
+            return res.status(404).json({
                 success: false,
                 error: 'Document not found',
                 statusCode: 404

@@ -9,7 +9,7 @@ import {
 } from '../controllers/aiController.js';
 import protect from '../middleware/auth.js';
 
-const router = express. Router();
+const router = express.Router();
 
 router.use(protect);
 

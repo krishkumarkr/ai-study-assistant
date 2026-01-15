@@ -212,7 +212,7 @@ export const chatWithContext = async (question, chunks) => {
 */
 
 export const explainConcept = async (concept, context) => {
-    const prompt = `Explain the concept of ${concept}" based on the following context.
+    const prompt = `Explain the concept of "${concept}" based on the following context.
     Provide a clear, educational explanation that's easy to understand.
     Include examples if relevant.
 
