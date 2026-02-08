@@ -46,7 +46,7 @@ const LoginPage = () => {
 
       <div className="relative w-full max-w-md px-6">
         {/* The Glass Card */}
-        <div className="bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-4xl shadow-2xl shadow-black/50 px-8 py-10">
+        <div className="bg-white/2 backdrop-blur-2xl border border-white/10 rounded-4xl shadow-2xl shadow-black/50 px-8 py-10">
           
           {/* Header */}
           <div className="text-center mb-10"> 
@@ -80,7 +80,7 @@ const LoginPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full h-13 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-emerald-500/5"
+                  className="w-full h-13 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
                   placeholder='you@example.com'
                 />
               </div>
@@ -103,7 +103,7 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full h-13 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-emerald-500/5"
+                  className="w-full h-13 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
                   placeholder=". . . . . . . . ."
                 />
               </div>
@@ -151,7 +151,7 @@ const LoginPage = () => {
         </div>
 
         {/* Subtle footer text */}
-        <p className="text-center text-[10px] font-medium text-zinc-600 uppercase tracking-[0.2em] mt-8">
+        <p className="text-center text-[10px] font-medium text-zinc-600 uppercase tracking-[0.2em] mt-5">
           By continuing, you agree to our Terms & Privacy Policy
         </p>
       </div>
