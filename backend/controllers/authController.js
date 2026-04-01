@@ -81,7 +81,8 @@ export const login = async (req, res, next) => {
         if(!user) {
             return res.status(401).json({
                 success: false,
-                error: "Invalid credentials",
+                // error: "Invalid credentials",
+                error: "Email not registered",
                 statusCode: 401,
             });
         }
@@ -92,7 +93,8 @@ export const login = async (req, res, next) => {
         if(!isMatch) {
             return res.status(401).json({
                 success: false,
-                error: "Invalid credentials",
+                // error: "Invalid credentials",
+                error: "Incorrect password",
                 statusCode: 401,
             });
         }
@@ -190,10 +192,10 @@ export const changePassword = async (req, res, next) => {
         const user = await User.findById(req.user._id).select("+password");
 
         // Check current password
-        const isMatch = await User.matchPassword(currentPassword);
+        const isMatch = await user.matchPassword(currentPassword);
 
         if(!isMatch) {
-            return res.statue(401).json({
+            return res.status(401).json({
                 success: false,
                 error: "Current Password is incorrect",
                 statusCode: 401,
