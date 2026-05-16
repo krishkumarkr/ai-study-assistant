@@ -70,7 +70,7 @@ export const chunkText = (text, chunkSize = 500, overlap = 50) => {
                 // Create overlap from previous chunk
                 const prevChunkText = currentChunk.join(' ');
                 const prevWords = prevChunkText.split(/\s+/);
-                const overlapText = prevvWords.slice(-Math.min(overlap, prevWords.length)).join(' ');
+                const overlapText = prevWords.slice(-Math.min(overlap, prevWords.length)).join(' ');
 
                 currentChunk = [overlapText, paragraph.trim()];
                 currentWordCount = overlapText.split(/\s+/).length + paragraphWordCount;
