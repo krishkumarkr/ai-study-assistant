@@ -32,7 +32,7 @@ const Header = ({ toggleSidebar }) => {
             <p className="text-sm font-bold text-white leading-none mb-1">
                 {user?.username || "User"}
             </p>
-            <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                 {user?.email || "user@example.com"}
             </p>
             </div>
