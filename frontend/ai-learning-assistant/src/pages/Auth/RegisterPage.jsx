@@ -8,6 +8,7 @@ const RegisterPage = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
@@ -17,27 +18,38 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!username || !email || !password || !confirmPassword) {
+      setError("Please provide all required fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     if (password.length < 6) {
       setError("Password must be at least 6 characters long.");
       return;
-    }
+    } 
 
     setError("");
     setLoading(true);
     try {
       await authService.register(username, email, password);
       toast.success("Registered successfully! Please Login");
-      navigate("/login");
+      navigate("/login" , { replace: true });
     } catch (err) {
-      setError(err.error || "Failed to register. Please try again.");
-      toast.error(err.error || "Failed to register.");
+      const errorMessage = err.error || err.message || "Failed to register. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen bg-zinc-950 overflow-hidden">
+    <div className="relative flex items-center text-base justify-center min-h-screen bg-zinc-950 overflow-hidden">
       <div className="absolute top-0 -left-4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 -right-4 w-96 h-96 bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -59,7 +71,7 @@ const RegisterPage = () => {
           </div>
 
           {/* Form */}
-          <div className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Username field */}
             <div className="space-y-2">
               <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
@@ -81,7 +93,7 @@ const RegisterPage = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   onFocus={(e) => setFocusedField("username")}
                   onBlur={(e) => setFocusedField(null)}
-                  className="w-full h-11 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
+                  className="w-full h-11 pl-12 pr-4 tracking-widest border border-white/5 rounded-2xl bg-white/3 text-white text-base transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
                   placeholder="your_username"
                 />
               </div>
@@ -108,7 +120,7 @@ const RegisterPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={(e) => setFocusedField("email")}
                   onBlur={(e) => setFocusedField(null)}
-                  className="w-full h-11 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
+                  className="w-full h-11 pl-12 pr-4 tracking-widest border border-white/5 rounded-2xl bg-white/3 text-white text-base transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
                   placeholder="you@example.com"
                 />
               </div>
@@ -135,7 +147,34 @@ const RegisterPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={(e) => setFocusedField("password")}
                   onBlur={(e) => setFocusedField(null)}
-                  className="w-full h-11 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
+                  className="w-full h-11 pl-12 pr-4 tracking-widest border border-white/5 rounded-2xl bg-white/3 text-white text-base transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
+                  placeholder=". . . . . . ."
+                />
+              </div>
+            </div>
+
+            {/* Confirm Password field */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
+                Confirm Password
+              </label>
+              <div className="relative group">
+                <div
+                  className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                    focusedField === "confirmPassword"
+                      ? "text-emerald-400"
+                      : "text-zinc-600"
+                  }`}
+                >
+                  <Lock className="h-5 w-5" strokeWidth={2} />
+                </div>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onFocus={() => setFocusedField("confirmPassword")}
+                  onBlur={() => setFocusedField(null)}
+                  className="w-full h-11 pl-12 pr-4 tracking-widest border border-white/5 rounded-2xl bg-white/3 text-white text-base transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
                   placeholder=". . . . . . ."
                 />
               </div>
@@ -152,7 +191,7 @@ const RegisterPage = () => {
 
             {/* Submit button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               className="group relative w-full h-13 bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] text-white text-sm font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 shadow-xl shadow-emerald-500/20 overflow-hidden"
             >
@@ -174,14 +213,14 @@ const RegisterPage = () => {
               </span>
               <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             </button>
-          </div>
+          </form>
 
           {/* Footer */}
           <div className="mt-6 pt-5 border-t border-white/5">
             <p className="text-center text-sm text-zinc-500">
               Already have an account?{" "}
               <Link
-                to="/login"
+                to="/login" replace
                 className="font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
               >
                 Sign in

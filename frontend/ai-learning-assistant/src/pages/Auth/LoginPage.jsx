@@ -24,10 +24,11 @@ const LoginPage = () => {
       const { token, user } = await authService.login(email, password);
       login(user, token);
       toast.success('Logged in successfully!');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.error || 'Failed to login. Please check your credentials.');
-      toast.error(err.error || 'Failed to login.');
+      const errorMessage = err.error || err.message || 'Failed to login. Please check your credentials.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -36,7 +37,7 @@ const LoginPage = () => {
   return (
     // Parent container with dark gradient and subtle glow
     <div className="relative flex items-center justify-center min-h-screen bg-zinc-950 overflow-hidden">
-      
+
       {/* Background Glow Accents */}
       <div className="absolute top-0 -left-4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 -right-4 w-96 h-96 bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
@@ -47,9 +48,9 @@ const LoginPage = () => {
       <div className="relative w-full max-w-md px-6">
         {/* The Glass Card */}
         <div className="bg-white/2 backdrop-blur-2xl border border-white/10 rounded-4xl shadow-2xl shadow-black/50 px-8 py-10">
-          
+
           {/* Header */}
-          <div className="text-center mb-10"> 
+          <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/20 mb-6">
               <BrainCircuit className="w-8 h-8 text-white" strokeWidth={1.5} />
             </div>
@@ -62,16 +63,15 @@ const LoginPage = () => {
           </div>
 
           {/* Form */}
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email field */}
             <div className="space-y-2">
               <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
                 Email Address
               </label>
               <div className="relative group">
-                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
-                  focusedField === 'email' ? 'text-emerald-400' : 'text-zinc-600'
-                }`}>
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${focusedField === 'email' ? 'text-emerald-400' : 'text-zinc-600'
+                  }`}>
                   <Mail className="h-5 w-5" strokeWidth={2} />
                 </div>
                 <input
@@ -80,7 +80,7 @@ const LoginPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full h-13 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
+                  className="w-full h-13 pl-12 pr-4 tracking-widest border border-white/5 rounded-2xl bg-white/3 text-white text-base transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
                   placeholder='you@example.com'
                 />
               </div>
@@ -92,9 +92,8 @@ const LoginPage = () => {
                 Password
               </label>
               <div className="relative group">
-                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
-                  focusedField === 'password' ? 'text-emerald-400' : 'text-zinc-600'
-                }`}>
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${focusedField === 'password' ? 'text-emerald-400' : 'text-zinc-600'
+                  }`}>
                   <Lock className="h-5 w-5" strokeWidth={2} />
                 </div>
                 <input
@@ -103,7 +102,7 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full h-13 pl-12 pr-4 border border-white/5 rounded-2xl bg-white/3 text-white text-sm transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
+                  className="w-full h-13 pl-12 pr-4 tracking-widest border border-white/5 rounded-2xl bg-white/3 text-white text-base transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/5 focus:ring-4 focus:ring-emerald-500/5"
                   placeholder=". . . . . . . . ."
                 />
               </div>
@@ -118,7 +117,7 @@ const LoginPage = () => {
 
             {/* Submit Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               className="group relative w-full h-13 bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] text-white text-sm font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 shadow-xl shadow-emerald-500/20 overflow-hidden"
             >
@@ -137,13 +136,13 @@ const LoginPage = () => {
               </span>
               <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             </button>
-          </div>
+          </form>
 
           {/* Footer */}
           <div className="mt-10 pt-6 border-t border-white/5">
             <p className="text-center text-sm text-zinc-500">
               Don't have an account?{' '}
-              <Link to='/register' className="font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+              <Link to='/register' replace className="font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
                 Sign Up
               </Link>
             </p>
