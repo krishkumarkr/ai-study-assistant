@@ -11,13 +11,13 @@ const Header = ({ toggleSidebar }) => {
         {/* Mobile Menu Button */}
         <button
           onClick={toggleSidebar}
-          className="lg:hidden p-2 rounded-xl text-zinc-400 hover:text-emerald-400 hover:bg-white/5 transition-all duration-300"
+          className="md:hidden p-2 rounded-xl text-zinc-400 hover:text-emerald-400 hover:bg-white/5 transition-all duration-300"
           aria-label="Toggle sidebar"
         >
           <Menu size={24} />
         </button>
 
-        <div className="hidden lg:block"></div>
+        <div className="hidden md:block"></div>
 
         <div className="flex items-center gap-6">
           <button className="relative p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all duration-300">

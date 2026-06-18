@@ -12,8 +12,8 @@ const AppLayout = ({ children }) => {
   return (
     <div className="flex h-screen w-full bg-zinc-950 overflow-hidden relative">
 
-      <div className="absolute top-0 -left-10 w-125 h-125 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 -right-10 w-125 h-125 bg-teal-500/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 -left-10 w-128 h-128 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 -right-10 w-128 h-128 bg-teal-500/5 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="absolute inset-0 bg-[radial-gradient(white_1px,transparent_1px)] bg-size-[32px_32px] opacity-[0.02] pointer-events-none" />
 

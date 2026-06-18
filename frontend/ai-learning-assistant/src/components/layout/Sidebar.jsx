@@ -17,7 +17,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
 
   const handleLogout = () => {
     logout();
-    navigate("login");
+    navigate("/login", { replace: true });
   };
 
   const navLinks = [
@@ -38,7 +38,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
       ></div>
 
       <aside
-        className={`fixed top-0 left-0 h-full w-68 bg-zinc-950/80 backdrop-blur-2xl border-r border-white/5 z-50 md:relative md:w-68 md:shrink-0 md:flex md:flex-col md:translate-x-0 transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-full w-72 bg-zinc-950/80 backdrop-blur-2xl border-r border-white/5 z-50 md:relative md:w-72 md:shrink-0 md:flex md:flex-col md:translate-x-0 transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -72,10 +72,10 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
               to={link.to}
               onClick={toggleSidebar}
               className={({ isActive }) =>
-                `group flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 ${
+                `group flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 border ${
                   isActive
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
-                    : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[3"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                    : "border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05]"
                 }`
               }
             >
