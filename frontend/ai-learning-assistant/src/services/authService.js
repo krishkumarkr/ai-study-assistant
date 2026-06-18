@@ -22,7 +22,7 @@ const register = async (username, email, password) => {
         });
         return response.data;
     } catch (error) {
-        throw error.resonse?.data || { message: 'An unknown error occurred' };
+        throw error.response?.data || { message: 'An unknown error occurred' };
     }
 };
 
@@ -40,7 +40,7 @@ const updateProfile = async (userData) => {
         const response = await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, userData);
         return response.data;
     } catch (error) {
-        throw error.response?.data || {essage: 'An unknown error occurred' };
+        throw error.response?.data || {message: 'An unknown error occurred' };
     }
 };
 
@@ -49,7 +49,7 @@ const changePassword = async (passwords) => {
         const response = await axiosInstance.post(API_PATHS.AUTH.CHANGE_PASSWORD, passwords);
         return response.data;
     } catch (error) {
-        throw error.response?.data || {essage: 'An unknown error occurred' };
+        throw error.response?.data || {message: 'An unknown error occurred' };
     }
 };
 

@@ -25,10 +25,10 @@ const uploadDocument = async (formData) => {
 
 const deleteDocument = async (id) => {
     try {
-        const response = await axiosInstance.get(API_PATHS.DOCUMENTS.DELETE_DOCUMENT(id));
+        const response = await axiosInstance.delete(API_PATHS.DOCUMENTS.DELETE_DOCUMENT(id));
         return response.data;
     } catch (error) {
-        throw error.response?.data || { message: 'Failed to delete documents' };
+        throw error.response?.data || { message: 'Failed to delete document' };
     }
 };
 
