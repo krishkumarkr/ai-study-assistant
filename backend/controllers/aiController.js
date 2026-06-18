@@ -311,14 +311,14 @@ export const getChatHistory = async (req, res, next) => {
         const { documentId } = req.params;
 
         if (!documentId) {
-            res.status(400).json({
+            return res.status(400).json({
                 success: false,
                 error: 'Please provide documentId',
                 statusCode: 400
             });
         }
 
-        const ChatHistory = await ChatHistory.findOne({
+        const chatHistory = await ChatHistory.findOne({
             userId: req.user._id,
             documentId: documentId
         }).select('messages'); //Only retrieve the messages array
