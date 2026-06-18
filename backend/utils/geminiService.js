@@ -102,40 +102,40 @@ export const generateQuiz = async (text, numQuestions= 5) => {
             model: "gemini-2.5-flash-lite",
             contents: prompt,
         });
-    
-    const generatedText = response.text;
 
-    const questions = [];
-    const questionBlocks = generatedText.split('---').filter(q => q.trim());
+        const generatedText = response.text;
 
-    for (const block of questionBlocks) {
-        const lines = block.trim().split('\n');
-        let question = '', options = [], correctAnswer = '', explanation = '', difficulty = 'medium';
+        const questions = [];
+        const questionBlocks = generatedText.split('---').filter(q => q.trim());
 
-        for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('Q:')) {
-                question = trimmed.substring(2).trim();
-            } else if (trimmed.match(/^0\d:/)) {
-                options.push(trimmed.substring(3).trim());
-            } else if (trimmed.startsWith('C:')) {
-                correctAnswer = trimmed.substring(2).trim();
-            } else if (trimmed.startsWith('E:')) {
-                explanation = trimmed.substring(2).trim();
-            } else if (trimmed.startsWith('D:')) {
-                const diff = trimmed.substring(2).trim().toLowerCase();
-                if (['easy', 'medium', 'hard'].includes(diff)) {
-                    difficulty = diff;
+        for (const block of questionBlocks) {
+            const lines = block.trim().split('\n');
+            let question = '', options = [], correctAnswer = '', explanation = '', difficulty = 'medium';
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('Q:')) {
+                    question = trimmed.substring(2).trim();
+                } else if (trimmed.match(/^0\d:/)) {
+                    options.push(trimmed.substring(3).trim());
+                } else if (trimmed.startsWith('C:')) {
+                    correctAnswer = trimmed.substring(2).trim();
+                } else if (trimmed.startsWith('E:')) {
+                    explanation = trimmed.substring(2).trim();
+                } else if (trimmed.startsWith('D:')) {
+                    const diff = trimmed.substring(2).trim().toLowerCase();
+                    if (['easy', 'medium', 'hard'].includes(diff)) {
+                        difficulty = diff;
+                    }
                 }
+            }
+
+            if (question && options.length === 4 && correctAnswer) {
+                questions.push({ question, options, correctAnswer, explanation, difficulty });
             }
         }
 
-        if (question && options.length === 4 && correctAnswer) {
-            questions.push({ question, options, correctAnswer, explanation, difficulty });
-        }
-    }
-
-    return questions.slice(0, numQuestions);
+        return questions.slice(0, numQuestions);
 
     } catch (error) {
         console.error('Gemini API error: ', error);
@@ -181,13 +181,29 @@ export const generateSummary = async (text) => {
 export const chatWithContext = async (question, chunks) => {
     const context = chunks.map((c, i) => `[Chunk ${i + 1}]\n${c.content}`).join('\n\n');
 
-    const prompt = `Based on the following context from a document, Analyse the context and answer the user's question.
-    If the answer is not in the context, say so.
+    // const prompt = `Based on the following context from a document, Analyse the context and answer the user's question.
+    // If the answer is not in the context, say so.
 
-    Context:
+    // Context:
+    // ${context}
+
+    // Question: ${question}
+
+    // Answer:`;
+
+    const prompt = `You are a helpful, witty, and grounded AI collaborator. 
+
+    Context: 
+    """
     ${context}
+    """
 
-    Question: ${question}
+    User Question: "${question}"
+
+    Instructions:
+    1. If the context is missing, empty, or just repeats the question, don't give a generic error. Instead, politely explain what's missing and offer a specific example of how I can help (e.g., "I'm ready to dive in, but I need the document text first!").
+    2. If the answer is in the context, be concise and highlight the key points.
+    3. If the answer is NOT in the context, say so clearly but offer to help based on your general knowledge if appropriate.
 
     Answer:`;
 
@@ -195,8 +211,11 @@ export const chatWithContext = async (question, chunks) => {
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-lite",
             contents: prompt,
+
         });
+        console.log('Gemini response:', response);
         const generatedText = response.text;
+
         return generatedText
     } catch (error) {
         console.error('Gemini API error:', error);

@@ -54,7 +54,7 @@ export const getQuizById = async (req, res, next) => {
 
 
 // @desc Submit quiz answers
-// @route GET /api/quizzes/:id/submit
+// @route POST /api/quizzes/:id/submit
 // @access Private
 export const submitQuiz = async (req, res, next) => {
     try {
@@ -94,7 +94,7 @@ export const submitQuiz = async (req, res, next) => {
         const userAnswers = [];
 
         answers.forEach(answer => {
-            const { questionIndex, selectedAnswer } = answers;
+            const { questionIndex, selectedAnswer } = answer;
 
             if (questionIndex < quiz.questions.length) {
                 const question = quiz.questions[questionIndex];
@@ -192,7 +192,7 @@ export const getQuizResults = async (req, res, next) => {
                     document: quiz.documentId,
                     score: quiz.score,
                     totalQuestions: quiz.totalQuestions,
-                    completeAt: quiz.completedAt
+                    completedAt: quiz.completedAt
                 },
                 results: detailedResults
             }
@@ -205,7 +205,7 @@ export const getQuizResults = async (req, res, next) => {
 
 
 // @desc Delete quiz
-// @route GET /api/quizzes/:id
+// @route DELETE /api/quizzes/:id
 // @access Private
 export const deleteQuiz = async (req, res, next) => {
     try {

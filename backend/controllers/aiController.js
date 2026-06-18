@@ -107,7 +107,7 @@ export const generateQuiz = async (req, res, next) => {
             title: title || `${document.title} - Quiz`,
             questions: questions,
             totalQuestions: questions.length,
-            userAnswerS: [],
+            userAnswers: [],
             score: 0
         });
 

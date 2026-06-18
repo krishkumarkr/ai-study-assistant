@@ -45,7 +45,7 @@ const quizSchema = new mongoose.Schema( {
             type: Number,
             required: true
         },
-        selectAnswer: {
+        selectedAnswer: {
             type: String,
             required: true
         },
