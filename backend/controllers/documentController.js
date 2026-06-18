@@ -5,6 +5,7 @@ import { extractTextFromPDF } from '../utils/pdfParser.js';
 import {chunkText} from '../utils/textChunker.js';
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
+import path from 'path';
 
 // @desc    Upload PDF document
 // @route   POST /api/document/upload
@@ -213,10 +214,20 @@ export const deleteDocument = async (req, res, next) => {
             });
         }
 
-        // Delete file from filesystem
-        await fs.unlink(document.filePath).catch(() => {});
+        // 1. Extract just the filename from the URL
+        // e.g., "http://localhost:8000/uploads/documents/math.pdf" -> "math.pdf"
+        const fileName = document.filePath.split('/').pop();
 
-        // Delete document
+        // 2. Reconstruct the local file path relative to your server root
+        const localPath = path.join(process.cwd(), 'uploads', 'documents', fileName);
+
+        // 3. Delete file from filesystem using the local path
+        // Added a console.error just in case the file is already missing
+        await fs.unlink(localPath).catch((err) => {
+            console.error(`Could not delete file at ${localPath}:`, err.message);
+        });
+
+        // Delete document from MongoDB
         await document.deleteOne();
 
         res.status(200).json({
