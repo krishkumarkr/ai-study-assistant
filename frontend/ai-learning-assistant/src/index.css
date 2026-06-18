@@ -1,18 +1,43 @@
 @import url('https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
 
 @theme {
+
   --font-display: "Urbanist", "sans-serif";
   --breakpoint-3xl: 1920px;
-  --color-primary: #FF9324;
+  
+  --color-primary: #10b981; 
+  --color-accent: #2dd4bf;
+
 }
 
 @layer base {
   html {
     font-family: var(--font-display);
+    scroll-behavior: smooth;
   }
 
   body {
-    background-color: #fcfbfc;
+    @apply bg-zinc-950 text-zinc-300 antialiased;
+  }
+
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.4);
   }
 }

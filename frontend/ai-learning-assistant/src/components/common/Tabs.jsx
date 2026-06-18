@@ -11,7 +11,7 @@ const Tabs = ({ tabs, activeTab, setActiveTab }) => {
               key={tab.name}
               onClick={() => setActiveTab(tab.name)}
               className={`
-                relative pb-4 px-2 md:px-6 text-sm font-bold uppercase tracking-[0.2em] transition-all duration-300 outline-hidden whitespace-nowrap
+                relative pb-4 px-2 md:px-6 text-sm font-bold uppercase tracking-[0.2em] transition-all duration-300 outline-none whitespace-nowrap
                 ${activeTab === tab.name 
                   ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]' 
                   : 'text-zinc-500 hover:text-zinc-300'}
@@ -29,7 +29,7 @@ const Tabs = ({ tabs, activeTab, setActiveTab }) => {
         {tabs.map((tab) => {
           if (tab.name === activeTab) {
             return (
-              <div key={tab.name} className="min-h-50">
+              <div key={tab.name} className="min-h-52">
                 {tab.content}
               </div>
             );

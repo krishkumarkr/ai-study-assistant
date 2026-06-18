@@ -116,13 +116,14 @@ const DocumentListPage = () => {
               Get started by uploading your first PDF document to begin learning
               with AI assistance.
             </p>
-            <button
+            <Button
               onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center gap-2 px-8 py-4 bg-emerald-500 text-black font-bold rounded-2xl hover:bg-emerald-400 active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/20 mx-auto"
+              size="lg"
+              className="mx-auto mt-8 shadow-lg shadow-emerald-500/20"
             >
               <Plus size={20} strokeWidth={2.5} />
               Upload Document
-            </button>
+            </Button>
           </div>
         </div>
       );

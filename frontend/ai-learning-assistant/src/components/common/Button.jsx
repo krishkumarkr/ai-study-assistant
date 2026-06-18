@@ -9,7 +9,7 @@ const Button = ({
   variant = "primary",
   size = "md",
 }) => {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 font-bold rounded-2xl transition-all duration-300 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 whitespace-nowrap outline-hidden';
+    const baseStyles = 'inline-flex items-center justify-center gap-2 font-bold rounded-2xl transition-all duration-300 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 whitespace-nowrap outline-none';
     
     const variantStyles = {
         primary: 'bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)]',

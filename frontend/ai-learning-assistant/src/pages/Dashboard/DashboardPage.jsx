@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Spinner from "../../components/common/Spinner";
-import progressService from "../../services/prgressService";
+import progressService from "../../services/progressService";
 import toast from "react-hot-toast";
 import {
   FileText,
@@ -78,7 +78,7 @@ const DashboardPage = () => {
     <div className="space-y-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="">
-        <h1 className="className=text-3xl font-bold text-2xl text-white tracking-normal mb-2">
+        <h1 className="className=text-3xl font-bold text-white tracking-normal mb-2">
           Dashboard
         </h1>
         <p className="text-zinc-500 text-sm">
@@ -156,6 +156,8 @@ const DashboardPage = () => {
                           : "bg-linear-to-r from-emerald-400 to-teal-500 shadow-emerald-500/20"
                       }`}
                     />
+                    
+                    {/* FIX: Grouped the Title and Timestamp inside this single div */}
                     <div>
                       <p className="text-sm font-medium text-zinc-300">
                         <span className="text-zinc-500 font-normal">
@@ -165,13 +167,15 @@ const DashboardPage = () => {
                         </span>
                         <span>{activity.description}</span>
                       </p>
+                      {/* Timestamp moved inside here! */}
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">
+                        {new Date(activity.timestamp).toLocaleString([], {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
                     </div>
-                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">
-                      {new Date(activity.timestamp).toLocaleString([], {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </p>
+                    
                   </div>
                   {activity.link && (
                     <Link
