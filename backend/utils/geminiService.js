@@ -69,7 +69,7 @@ export const generateFlashcards = async (text, count = 10) => {
         return flashcards.slice(0, count);
     } catch (error) {
         console.error('Gemini API error:', error);
-        throw new Error('Failed to generate flashcards');
+        throw error;
     }
 };
 
@@ -139,7 +139,7 @@ export const generateQuiz = async (text, numQuestions= 5) => {
 
     } catch (error) {
         console.error('Gemini API error: ', error);
-        throw new Error('Failed to generate quiz');
+        throw error;
     }
 };
 
@@ -166,7 +166,7 @@ export const generateSummary = async (text) => {
         return generatedText
     } catch (error) {
         console.error('Gemini API error:', error);
-        throw new Error('Failed to generate summary');
+        throw error;
     }
 };
 
@@ -219,8 +219,8 @@ export const chatWithContext = async (question, chunks) => {
         return generatedText
     } catch (error) {
         console.error('Gemini API error:', error);
-        throw new Error('Failed to process chat request');
-    }
+            throw error;
+        }
 };
 
 /**
@@ -247,6 +247,6 @@ export const explainConcept = async (concept, context) => {
         return generatedText
     } catch (error) {
         console.error('Gemini API error:', error);
-        throw new Error('Failed to explain concept');
+        throw error;
     }
 };

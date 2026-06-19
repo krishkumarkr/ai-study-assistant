@@ -61,6 +61,15 @@ export const generateFlashcards = async (req, res, next) => {
         });
 
     } catch (error) {
+
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+            return res.status(429).json({
+                success: false,
+                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
+                statusCode: 429
+            });
+        }
+
         next(error)
     }
 };
@@ -118,6 +127,15 @@ export const generateQuiz = async (req, res, next) => {
         });
 
     } catch (error) {
+
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+            return res.status(429).json({
+                success: false,
+                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
+                statusCode: 429
+            });
+        }
+
         next(error)
     }
 };
@@ -164,6 +182,15 @@ export const generateSummary = async (req, res, next) => {
             message: 'Summary generated successfully'
         });
     } catch (error) {
+
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+            return res.status(429).json({
+                success: false,
+                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
+                statusCode: 429
+            });
+        }
+
         next(error)
     }
 };
@@ -248,6 +275,15 @@ export const chat = async (req, res, next) => {
         });
 
     } catch (error) {
+
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+            return res.status(429).json({
+                success: false,
+                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
+                statusCode: 429
+            });
+        }
+
         next(error);
     }
 };
@@ -299,6 +335,15 @@ export const explainConcept = async (req, res, next) => {
         });
 
     } catch (error) {
+
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+            return res.status(429).json({
+                success: false,
+                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
+                statusCode: 429
+            });
+        }
+
         next(error);
     }
 };
@@ -338,6 +383,15 @@ export const getChatHistory = async (req, res, next) => {
         });
 
     } catch (error) {
+
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+            return res.status(429).json({
+                success: false,
+                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
+                statusCode: 429
+            });
+        }
+
         next(error);
     }
 };

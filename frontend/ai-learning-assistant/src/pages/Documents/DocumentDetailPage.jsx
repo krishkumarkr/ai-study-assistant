@@ -7,6 +7,7 @@ import PageHeader from "../../components/common/PageHeader";
 import toast from "react-hot-toast";
 import { ArrowLeft, ExternalLink, FileWarning } from "lucide-react";
 import ChatInterface from "../../components/Chat/ChatInterface";
+import AIActions from "../../components/ai/AiActions";
 
 const DocumentDetailPage = () => {
   const { id } = useParams();
@@ -100,7 +101,7 @@ const DocumentDetailPage = () => {
   };
 
   const renderAIActions = () => {
-    return "renderAIActions";
+    return <AIActions />;
   };
 
   const renderFlashcardsTab = () => {
