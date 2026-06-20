@@ -5,9 +5,10 @@ import Spinner from "../../components/common/Spinner";
 import Tabs from "../../components/common/Tabs";
 import PageHeader from "../../components/common/PageHeader";
 import toast from "react-hot-toast";
-import { ArrowLeft, ExternalLink, FileWarning } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileWarning, Flag } from "lucide-react";
 import ChatInterface from "../../components/Chat/ChatInterface";
 import AIActions from "../../components/ai/AiActions";
+import FlashcardManager from "../../components/flashcards/FlashcardManager";
 
 const DocumentDetailPage = () => {
   const { id } = useParams();
@@ -105,7 +106,7 @@ const DocumentDetailPage = () => {
   };
 
   const renderFlashcardsTab = () => {
-    return "renderFLashcardsTab";
+    return <FlashcardManager documentId={id} />;
   };
 
   const renderQuizzesTab = () => {
