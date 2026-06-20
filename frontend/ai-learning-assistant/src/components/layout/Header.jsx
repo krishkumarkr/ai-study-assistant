@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Bell, User, Menu } from "lucide-react";
+import { User, Menu } from "lucide-react";
 
 const Header = ({ toggleSidebar }) => {
   const { user } = useAuth();
@@ -20,12 +20,7 @@ const Header = ({ toggleSidebar }) => {
         <div className="hidden md:block"></div>
 
         <div className="flex items-center gap-6">
-          <button className="relative p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all duration-300">
-            <Bell size={20} strokeWidth={2} />
-
-            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-zinc-950"></span>
-          </button>
-
+        
           {/* User Profile */}
           <div className="flex items-center gap-3 pl-4 border-l border-white/10">
             <div className="text-right hidden sm:block">

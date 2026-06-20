@@ -19,6 +19,12 @@ const QuizTakePage = () => {
     const fetchQuiz = async () => {
       try {
         const response = await quizService.getQuizById(quizId);
+
+        if (response.data.completedAt) {
+            navigate(`/quizzes/${quizId}/results`, { replace: true });
+            return;
+        }
+
         setQuiz(response.data);
       } catch (error) {
         toast.error("Failed to fetch quiz.");

@@ -78,7 +78,7 @@ const DashboardPage = () => {
     <div className="space-y-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="">
-        <h1 className="className=text-3xl font-bold text-white tracking-normal mb-2">
+        <h1 className="text-3xl font-bold text-white tracking-normal mb-2">
           Dashboard
         </h1>
         <p className="text-zinc-500 text-sm">
@@ -138,7 +138,7 @@ const DashboardPage = () => {
                 id: quiz._id,
                 description: quiz.title || "Untitled Quiz",
                 timestamp: quiz.lastAttempted,
-                link: `/quizzes/${quiz._id}`,
+                link: `/quizzes/${quiz._id}/results`,
                 type: "quiz",
               })),
             ]
