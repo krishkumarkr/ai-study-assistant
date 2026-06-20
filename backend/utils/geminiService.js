@@ -88,8 +88,8 @@ export const generateQuiz = async (text, numQuestions= 5) => {
     02: [Option 2]
     03: [Option 3]
     04: [Option 4]
-    C: [Correct option - exactly as written above]
-    E: [Brief explanation]
+    C: [Correct option - EXACTLY as written above, SO THE USER'S ANSWER CAN BE CHECK CORRECTLY]
+    E: [Brief explanation, (explain in context of the document), make it understandable]
     D: [Difficulty: easy, medium, or hard]
 
     Separate questions with "---"

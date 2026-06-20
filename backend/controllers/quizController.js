@@ -89,6 +89,8 @@ export const submitQuiz = async (req, res, next) => {
             });
         }
 
+        const normalizeText = (str) => String(str).replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").replace(/\s{2,}/g, " ").trim().toLowerCase();
+
         // Process answers
         let correctCount = 0;
         const userAnswers = [];
@@ -98,8 +100,54 @@ export const submitQuiz = async (req, res, next) => {
 
             if (questionIndex < quiz.questions.length) {
                 const question = quiz.questions[questionIndex];
-                const isCorrect = selectedAnswer === question.correctAnswer;
-  
+                
+                // --- ROBUST BACKEND GRADING LOGIC ---
+                const dbCorrectAnswer = String(question.correctAnswer || "").trim().toLowerCase();
+                const isSkipped = !selectedAnswer || selectedAnswer === "Not Answered";
+                
+                let correctIndex = -1;
+                
+                // 1. Exact normalized string match
+                let idx = question.options.findIndex(opt => normalizeText(opt) === normalizeText(dbCorrectAnswer));
+                if (idx !== -1) {
+                    correctIndex = idx;
+                } else {
+                    // 2. Substring match (e.g. "52" vs "52nd")
+                    idx = question.options.findIndex(opt => {
+                        const cleanOpt = normalizeText(opt);
+                        const cleanDb = normalizeText(dbCorrectAnswer);
+                        return cleanOpt.length > 0 && (cleanDb.includes(cleanOpt) || cleanOpt.includes(cleanDb));
+                    });
+                    if (idx !== -1) {
+                        correctIndex = idx;
+                    } 
+                    // 3. Option formatting match (e.g., "Option A", "Option 1")
+                    else if (dbCorrectAnswer.includes("option")) {
+                        const numMatch = dbCorrectAnswer.match(/\d+/);
+                        if (numMatch) {
+                            correctIndex = parseInt(numMatch[0]) - 1;
+                        } else {
+                            const charMatch = dbCorrectAnswer.match(/[a-d]/);
+                            if (charMatch) correctIndex = charMatch[0].charCodeAt(0) - 97;
+                        }
+                    } 
+                    // 4. Letter formatting match (e.g., "A", "B")
+                    else if (dbCorrectAnswer.length === 1 && /[a-d]/.test(dbCorrectAnswer)) {
+                        correctIndex = dbCorrectAnswer.charCodeAt(0) - 97;
+                    } 
+                    // 5. Raw Index Number (e.g., "0", "1")
+                    else if (/^\d+$/.test(dbCorrectAnswer)) {
+                        const num = parseInt(dbCorrectAnswer);
+                        if (num > 0 && num <= question.options.length) correctIndex = num - 1;
+                        else if (num === 0) correctIndex = 0;
+                    }
+                }
+
+                const userIndex = question.options.findIndex(opt => opt === selectedAnswer);
+                
+                // Final determination if they actually got it right
+                const isCorrect = !isSkipped && userIndex !== -1 && userIndex === correctIndex;
+
                 if (isCorrect) {
                     correctCount++;
                 }

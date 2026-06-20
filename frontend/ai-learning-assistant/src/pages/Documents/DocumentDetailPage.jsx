@@ -9,6 +9,7 @@ import { ArrowLeft, ExternalLink, FileWarning, Flag } from "lucide-react";
 import ChatInterface from "../../components/Chat/ChatInterface";
 import AIActions from "../../components/ai/AiActions";
 import FlashcardManager from "../../components/flashcards/FlashcardManager";
+import QuizManager from "../../components/quizzes/QuizManager";
 
 const DocumentDetailPage = () => {
   const { id } = useParams();
@@ -110,7 +111,7 @@ const DocumentDetailPage = () => {
   };
 
   const renderQuizzesTab = () => {
-    return "renderQuizzesTab";
+    return <QuizManager documentId={id} />;
   };
 
   const tabs = [
