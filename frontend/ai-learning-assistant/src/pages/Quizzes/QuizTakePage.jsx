@@ -37,11 +37,20 @@ const QuizTakePage = () => {
     fetchQuiz();
   }, [quizId]);
 
-  const handleOptionChange = (questionId, optionIndex) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionIndex,
-    }));
+  const handleOptionToggle = (questionId, optionIndex) => {
+    setSelectedAnswers((prev) => {
+      const newAnswers = { ...prev };
+      
+      // If they click the one that's already selected, delete it (unselect)
+      if (newAnswers[questionId] === optionIndex) {
+        delete newAnswers[questionId];
+      } else {
+        // Otherwise, select it
+        newAnswers[questionId] = optionIndex;
+      }
+      
+      return newAnswers;
+    });
   };
 
   const handleNextQuestion = () => {
@@ -149,22 +158,16 @@ const QuizTakePage = () => {
           {currentQuestion.options.map((option, index) => {
             const isSelected = selectedAnswers[currentQuestion._id] === index;
             return (
-              <label
+              <div
                 key={index}
+                onClick={() => handleOptionToggle(currentQuestion._id, index)}
                 className={`group relative flex items-center p-4 md:p-5 border rounded-2xl cursor-pointer transition-all duration-300 ${
                   isSelected
                     ? "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
                     : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
                 }`}
               >
-                <input
-                  type="radio"
-                  name={`question-${currentQuestion._id}`}
-                  value={index}
-                  checked={isSelected}
-                  onChange={() => handleOptionChange(currentQuestion._id, index)}
-                  className="sr-only"
-                />
+                {/* Note: The hidden <input type="radio"> is completely gone now! */}
 
                 {/* Custom Radio Button */}
                 <div
@@ -187,7 +190,7 @@ const QuizTakePage = () => {
                 >
                   {option}
                 </span>
-              </label>
+              </div>
             );
           })}
         </div>

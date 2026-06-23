@@ -2,10 +2,11 @@ import Document from '../models/Document.js';
 import Flashcard from '../models/Flashcard.js';
 import Quiz from '../models/Quiz.js';
 import { extractTextFromPDF } from '../utils/pdfParser.js';
-import {chunkText} from '../utils/textChunker.js';
-import fs from 'fs/promises';
+import { chunkText } from '../utils/textChunker.js';
+import { uploadToR2, deleteFromR2 } from '../utils/r2Storage.js';
 import mongoose from 'mongoose';
-import path from 'path';
+
+// Notice: 'fs' and 'path' are completely removed because we no longer touch the hard drive!
 
 // @desc    Upload PDF document
 // @route   POST /api/document/upload
@@ -22,32 +23,33 @@ export const uploadDocument = async (req, res, next) => {
 
         const { title } = req.body;
 
-        if(!title) {
-            // Delete uploaded file if no title provided
-            await fs.unlink(req.file.path);
-            return res.status(400).json ({
+        if (!title) {
+            // No need to delete a local file here anymore, the RAM buffer will just clear itself
+            return res.status(400).json({
                 success: false,
                 error: 'Please provide a document title',
                 statusCode: 400
             });
-        } 
+        }
 
-        // Construct the URL for the uploaded file
-        const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
-        const fileUrl = `${baseUrl}/uploads/documents/${req.file.filename}`;
+        // 1. Upload the file buffer from RAM directly to Cloudflare R2
+        const publicFileUrl = await uploadToR2(req.file.buffer, req.file.originalname, req.file.mimetype);
+        
+        // 2. Extract the unique filename from the URL to store in the DB
+        const uniqueFileName = publicFileUrl.split('/').pop();
 
-        // Create document record
+        // 3. Create document record
         const document = await Document.create({
             userId: req.user._id,
             title,
-            fileName: req.file.originalname,
-            filePath: fileUrl, // Store the Url instead of the local path
+            fileName: uniqueFileName,
+            filePath: publicFileUrl, // Store the production R2 cloud URL!
             fileSize: req.file.size,
             status: 'processing'
         });
 
-        // Process PDF in background (in production, use a queue like a Bull)
-        processPDF(document._id, req.file.path).catch(err => {
+        // 4. Process PDF in background using the RAM buffer
+        processPDF(document._id, req.file.buffer).catch(err => {
             console.error('PDF processing error:', err);
         });
 
@@ -58,23 +60,22 @@ export const uploadDocument = async (req, res, next) => {
         });
 
     } catch (error) {
-        // Clean up file on error
-        if(req.file) {
-            await fs.unlink(req.file.path).catch(() => {});
-        }
-        next (error);
+        // No local file cleanup needed on error anymore
+        next(error);
     }
 };
 
-// Helper function to progress PDF
-const processPDF = async (documentId, filePath) => {
+// Helper function to process PDF
+// Changed parameter from 'filePath' to 'fileBuffer'
+const processPDF = async (documentId, fileBuffer) => {
     try {
-        const {text} = await extractTextFromPDF(filePath);
+        // Extract text directly from the memory buffer
+        const { text } = await extractTextFromPDF(fileBuffer);
 
         // Create chunks
-        const  chunks = chunkText(text, 500, 50);
+        const chunks = chunkText(text, 500, 50);
 
-        // Upload document
+        // Update document
         await Document.findByIdAndUpdate(documentId, {
             extractedText: text,
             chunks: chunks,
@@ -144,7 +145,7 @@ export const getDocuments = async (req, res, next) => {
         });
 
     } catch (error) {
-        next (error);
+        next(error);
     }
 };
 
@@ -192,7 +193,7 @@ export const getDocument = async (req, res, next) => {
         });
 
     } catch (error) {
-        next (error);
+        next(error);
     }
 };
 
@@ -214,20 +215,15 @@ export const deleteDocument = async (req, res, next) => {
             });
         }
 
-        // 1. Extract just the filename from the URL
-        // e.g., "http://localhost:8000/uploads/documents/math.pdf" -> "math.pdf"
+        // 1. Extract just the filename from the R2 URL
         const fileName = document.filePath.split('/').pop();
 
-        // 2. Reconstruct the local file path relative to your server root
-        const localPath = path.join(process.cwd(), 'uploads', 'documents', fileName);
-
-        // 3. Delete file from filesystem using the local path
-        // Added a console.error just in case the file is already missing
-        await fs.unlink(localPath).catch((err) => {
-            console.error(`Could not delete file at ${localPath}:`, err.message);
+        // 2. Delete file from Cloudflare R2 bucket
+        await deleteFromR2(fileName).catch((err) => {
+            console.error(`Could not delete file from Cloudflare R2: ${fileName}`, err.message);
         });
 
-        // Delete document from MongoDB
+        // 3. Delete document from MongoDB
         await document.deleteOne();
 
         res.status(200).json({
@@ -236,6 +232,6 @@ export const deleteDocument = async (req, res, next) => {
         });
 
     } catch (error) {
-        next (error);
+        next(error);
     }
 };
