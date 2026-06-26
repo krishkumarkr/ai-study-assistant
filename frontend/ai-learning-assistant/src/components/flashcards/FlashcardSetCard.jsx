@@ -1,13 +1,21 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Sparkles, TrendingUp } from "lucide-react";
+import { BookOpen, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import moment from "moment";
 
 const FlashcardSetCard = ({ flashcardSet }) => {
   const navigate = useNavigate();
 
+  // THE GHOST KILLER: If the document was deleted from the database, 
+  // this is an orphaned flashcard set. We abort rendering immediately.
+  if (!flashcardSet || !flashcardSet.documentId) {
+    return null; 
+  }
+
   const handleStudyNow = () => {
-    navigate(`/documents/${flashcardSet.documentId._id}/flashcards`);
+    navigate(`/documents/${flashcardSet.documentId._id}/flashcards`, {
+      state: { fromAllFlashcards: true}
+    });
   };
 
   const reviewedCount = flashcardSet.cards?.filter(card => card.lastReviewed).length || 0;
@@ -19,11 +27,9 @@ const FlashcardSetCard = ({ flashcardSet }) => {
       className="bg-white/2 border border-white/5 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/4 transition-all duration-300 shadow-xl shadow-black/20 flex flex-col group cursor-pointer relative overflow-hidden"
       onClick={handleStudyNow}
     >
-      {/* Decorative background glow */}
       <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
 
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Icon and Title */}
         <div className="flex items-start gap-4 mb-6">
           <div className="shrink-0 w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-inner">
             <BookOpen className="w-6 h-6 text-emerald-400" strokeWidth={2} />
@@ -31,9 +37,9 @@ const FlashcardSetCard = ({ flashcardSet }) => {
           <div className="flex-1 min-w-0 pt-1">
             <h3
               className="text-lg font-bold text-white tracking-tight line-clamp-2 mb-1 group-hover:text-emerald-400 transition-colors"
-              title={flashcardSet?.documentId?.title}
+              title={flashcardSet.documentId.title}
             >
-              {flashcardSet?.documentId?.title}
+              {flashcardSet.documentId.title}
             </h3>
             <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
               Created {moment(flashcardSet.createdAt).fromNow()}
@@ -41,7 +47,6 @@ const FlashcardSetCard = ({ flashcardSet }) => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg">
             <span className="text-xs font-bold tracking-widest uppercase text-zinc-300">
@@ -58,7 +63,6 @@ const FlashcardSetCard = ({ flashcardSet }) => {
           )}
         </div>
 
-        {/* Progress Bar */}
         {totalCards > 0 && (
           <div className="space-y-2 mt-auto">
             <div className="flex items-center justify-between">
@@ -79,7 +83,6 @@ const FlashcardSetCard = ({ flashcardSet }) => {
         )}
       </div>
 
-      {/* Study Button */}
       <div className="pt-6 relative z-10">
         <button
           onClick={(e) => {

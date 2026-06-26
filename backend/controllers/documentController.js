@@ -5,6 +5,7 @@ import { extractTextFromPDF } from '../utils/pdfParser.js';
 import { chunkText } from '../utils/textChunker.js';
 import { uploadToR2, deleteFromR2 } from '../utils/r2Storage.js';
 import mongoose from 'mongoose';
+import ChatHistory from '../models/ChatHistory.js';
 
 // Notice: 'fs' and 'path' are completely removed because we no longer touch the hard drive!
 
@@ -202,7 +203,7 @@ export const getDocument = async (req, res, next) => {
 // @access  Private
 export const deleteDocument = async (req, res, next) => {
     try {
-        const document = await Document.findOne ({
+        const document = await Document.findOne({
             _id: req.params.id,
             userId: req.user._id
         });
@@ -223,12 +224,18 @@ export const deleteDocument = async (req, res, next) => {
             console.error(`Could not delete file from Cloudflare R2: ${fileName}`, err.message);
         });
 
-        // 3. Delete document from MongoDB
+        // 3. CASCADING DELETES: Wipe out all orphaned data tied to this document!
+        // This ensures no "ghost" flashcards or quizzes are left behind.
+        await Flashcard.deleteMany({ documentId: document._id });
+        await Quiz.deleteMany({ documentId: document._id });
+        await ChatHistory.deleteOne({ documentId: document._id });
+
+        // 4. Delete document from MongoDB
         await document.deleteOne();
 
         res.status(200).json({
             success: true,
-            message: 'Document deleted successfully'
+            message: 'Document and all associated data deleted successfully'
         });
 
     } catch (error) {

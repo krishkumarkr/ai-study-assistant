@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, MessageSquare, Sparkles } from "lucide-react";
+import { Send, MessageSquare, Sparkles, User, Bot } from "lucide-react";
 import { useParams } from "react-router-dom";
 import aiService from "../../services/aiService";
 import { useAuth } from "../../context/AuthContext";
@@ -24,9 +24,7 @@ const ChatInterface = () => {
       try {
         setInitialLoading(true);
         const response = await aiService.getChatHistory(documentId);
-        const chatData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.messages || [];
+        const chatData = Array.isArray(response.data) ? response.data : response.data?.messages || [];
         setHistory(chatData);
       } catch (error) {
         console.error("Failed to fetch chat history:", error);
@@ -34,11 +32,8 @@ const ChatInterface = () => {
         setInitialLoading(false);
       }
     };
-
     fetchChatHistory();
   }, [documentId]);
-
-  console.log("Chat history: ", history);
 
   useEffect(() => {
     scrollToBottom();
@@ -48,32 +43,16 @@ const ChatInterface = () => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    const userMessage = {
-      role: "user",
-      content: message,
-      timestamp: new Date(),
-    };
+    const userMessage = { role: "user", content: message, timestamp: new Date() };
     setHistory((prev) => [...prev, userMessage]);
     setMessage("");
     setLoading(true);
 
     try {
       const response = await aiService.chat(documentId, userMessage.content);
-      const assistantMessage = {
-        role: "assistant",
-        content: response.data.answer,
-        timestamp: new Date(),
-        relevantChunks: response.data.relevantChunks,
-      };
-      setHistory((prev) => [...prev, assistantMessage]);
+      setHistory((prev) => [...prev, { role: "assistant", content: response.data.answer, timestamp: new Date() }]);
     } catch (error) {
-      console.error("Chat error: ", error);
-      const errorMessage = {
-        role: "assistant",
-        content: "Sorry, I encountered an error. Please try again.",
-        timestamp: new Date(),
-      };
-      setHistory((prev) => [...prev, errorMessage]);
+      setHistory((prev) => [...prev, { role: "assistant", content: "Sorry, error encountered.", timestamp: new Date() }]);
     } finally {
       setLoading(false);
     }
@@ -84,151 +63,86 @@ const ChatInterface = () => {
     return (
       <div
         key={index}
-        className={`flex items-start gap-4 my-6 animate-in fade-in slide-in-from-bottom-2 duration-300 ${isUser ? "flex-row-reverse" : "flex-row"}`}
+        className={`flex items-end gap-2 my-4 w-full ${isUser ? "justify-end" : "justify-start"}`}
       >
-        {/* Avatar Section */}
-        <div
-          className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border font-bold text-xs shadow-lg ${
-            isUser
-              ? "bg-emerald-500 border-emerald-400 text-black shadow-emerald-500/20"
-              : "bg-zinc-900 border-white/10 text-emerald-400"
-          }`}
-        >
-          {isUser ? (
-            user?.username?.charAt(0).toUpperCase() || "U"
-          ) : (
-            <Sparkles size={18} strokeWidth={2.5} />
-          )}
-        </div>
-        <div
-          className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : "items-start"}`}
-        >
+        {/* AVATAR SECTION: 
+        'hidden lg:flex' hides them on mobile and tablet. 
+        Only shows up on large desktop screens (lg).
+      */}
+        {!isUser && (
+          <div className="hidden lg:flex shrink-0 w-8 h-8 rounded-full bg-zinc-800 items-center justify-center text-emerald-400">
+            <Bot size={16} />
+          </div>
+        )}
+
+        {/* BUBBLE SECTION: 
+        Max-width adjusted to give bubbles more breathing room on mobile/tablet
+      */}
+        <div className={`flex flex-col max-w-[85%] sm:max-w-[70%] ${isUser ? "items-end" : "items-start"}`}>
           <div
-            className={`p-4 rounded-2xl border backdrop-blur-md shadow-xl transition-all duration-300 ${
-              isUser
-                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-50 rounded-tr-none"
-                : "bg-white/3 border-white/10 text-zinc-300 rounded-tl-none"
-            }`}
+            className={`p-3 md:p-4 rounded-2xl text-xs md:text-sm border shadow-lg ${isUser
+                ? "bg-emerald-500 text-black rounded-br-none"
+                : "bg-white/5 text-zinc-200 rounded-bl-none border-white/5"
+              }`}
           >
             {isUser ? (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {msg.content}
-              </p>
+              <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
             ) : (
-              <div className="text-sm">
-                <MarkdownRenderer content={msg.content} />
-              </div>
+              <MarkdownRenderer content={msg.content} />
             )}
           </div>
-          {/* Timestamp */}
-          <span className="mt-2 px-1 text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
-            {new Date(msg.timestamp).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+
+          {/* Timestamp - Subtle and pinned to the bottom */}
+          <span className="mt-1 px-1 text-[9px] text-zinc-600 uppercase tracking-widest">
+            {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
+
+        {/* USER AVATAR: Hidden on mobile and tablet */}
+        {isUser && (
+          <div className="hidden lg:flex shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center text-emerald-400 font-bold text-xs">
+            {user?.username?.charAt(0).toUpperCase() || "U"}
+          </div>
+        )}
       </div>
     );
   };
 
-
-  if (initialLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-20 min-h-[400px] text-center">
-        <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center mb-4 border border-white/5 shadow-2xl">
-          <MessageSquare className="text-emerald-500" />
-        </div>
-        <Spinner />
-        <p className="text-zinc-500 text-sm mt-4 font-bold uppercase tracking-widest">
-          Loading chat history...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col h-[600px] bg-white/1 border border-white/5 rounded-4xl overflow-hidden shadow-2xl backdrop-blur-3xl">
-      {/* Message Area */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+    // FLUID HEIGHT: Uses 100vh dynamic math to fit perfectly on phones and desktops
+    <div className="flex flex-col h-[calc(100vh-280px)] md:h-[65vh] w-full bg-zinc-950/30 border border-white/5 rounded-2xl md:rounded-3xl overflow-hidden backdrop-blur-xl">
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 custom-scrollbar">
         {history.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40">
-            <div className="p-5 rounded-3xl bg-zinc-900 border border-white/5">
-              <MessageSquare
-                size={40}
-                className="text-zinc-500"
-                strokeWidth={1.5}
-              />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                Start a conversation
-              </h3>
-              <p className="text-sm text-zinc-400 max-w-[200px] mx-auto">
-                Ask me anything about the document!
-              </p>
-            </div>
+          <div className="h-full flex flex-col items-center justify-center opacity-40">
+            <MessageSquare size={40} className="mb-4 text-emerald-500" />
+            <p className="text-sm font-bold uppercase tracking-widest text-white">No messages yet</p>
           </div>
         ) : (
           history.map(renderMessage)
         )}
         <div ref={messagesEndRef} />
-        {loading && (
-          <div className="flex justify-start mb-6 animate-pulse">
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center text-emerald-400">
-                <Sparkles size={16} />
-              </div>
-              <div className="bg-white/3 border border-white/10 rounded-2xl p-4">
-                <div className="flex gap-1.5">
-                  <span
-                    className="w-1.5 h-1.5 bg-emerald-500/50 rounded-full animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  ></span>
-                  <span
-                    className="w-1.5 h-1.5 bg-emerald-500/50 rounded-full animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  ></span>
-                  <span
-                    className="w-1.5 h-1.5 bg-emerald-500/50 rounded-full animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  ></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Input Area */}
-      <div className="p-4 md:p-6 bg-zinc-950/40 border-t border-white/5 backdrop-blur-xl rounded-b-4xl">
-        <form
-          onSubmit={handleSendMessage}
-          className="relative group flex items-center"
-        >
+      {/* Fixed Input Area at Bottom */}
+      <div className="p-3 md:p-4 border-t border-white/5 bg-zinc-900/50">
+        <form onSubmit={handleSendMessage} className="relative flex items-center">
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Ask a follow-up question..."
-            className="relative w-full bg-white/3 border border-white/10 rounded-2xl py-4 pl-6 pr-16 text-white text-sm focus:outline-none focus:border-emerald-500/40 focus:bg-white/5 transition-all placeholder:text-zinc-600 disabled:opacity-50"
-            disabled={loading}
+            placeholder="Ask a question..."
+            className="w-full bg-black/40 text-white rounded-xl py-3 pl-4 pr-12 text-sm border border-white/10 focus:outline-none focus:border-emerald-500/50 transition-all"
           />
           <button
             type="submit"
             disabled={loading || !message.trim()}
-            className="absolute right-2 p-3 rounded-xl bg-emerald-500 text-black hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-600 transition-all duration-300 shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center justify-center"
+            className="absolute right-2 p-2 bg-emerald-500 text-black rounded-lg disabled:opacity-50"
           >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-black/20 border-t-black animate-spin rounded-full" />
-            ) : (
-              <Send size={18} strokeWidth={2.5} />
-            )}
+            {loading ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <Send size={16} />}
           </button>
         </form>
-        <p className="mt-3 text-center text-[10px] text-zinc-600 font-bold uppercase tracking-[0.2em]">
-          Press Enter to send • Powered by Gemini AI
-        </p>
       </div>
     </div>
   );

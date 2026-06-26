@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import authService from '../../services/authService';
 import { BrainCircuit, Mail, Lock, ArrowRight } from 'lucide-react';
+import BackgroundGlow from '../../components/common/BackgroundGlow';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
@@ -38,14 +39,13 @@ const LoginPage = () => {
     // Parent container with dark gradient and subtle glow
     <div className="relative flex items-center justify-center min-h-screen bg-zinc-950 overflow-hidden">
 
-      {/* Background Glow Accents */}
-      <div className="absolute top-0 -left-4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 -right-4 w-96 h-96 bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
+      {/* Background Glow Accents (REPLACED THE STATIC DIVS WITH THIS) */}
+      <BackgroundGlow />
 
       {/* Optimized Dot Grid */}
-      <div className="absolute inset-0 bg-[radial-gradient(white_1px,transparent_1px)] bg-size-[32px_32px] opacity-[0.03] pointer-events-none" />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(white_1px,transparent_1px)] bg-size-[32px_32px] opacity-[0.03] pointer-events-none" />
 
-      <div className="relative w-full max-w-md px-6">
+      <div className="relative z-10 w-full max-w-md px-6">
         {/* The Glass Card */}
         <div className="bg-white/2 backdrop-blur-2xl border border-white/10 rounded-4xl shadow-2xl shadow-black/50 px-8 py-10">
 
@@ -159,4 +159,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-

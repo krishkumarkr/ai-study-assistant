@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
-import { Sparkles, BookOpen, Lightbulb, X } from "lucide-react";
+import { Sparkles, BookOpen, Lightbulb } from "lucide-react";
 import aiService from "../../services/aiService";
 import toast from "react-hot-toast";
 import MarkdownRenderer from "../common/MarkdownRenderer";
 import Modal from "../common/Modal";
 
 const AIActions = () => {
-
     const { id: documentId } = useParams();
     const [loadingAction, setLoadingAction] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,7 +22,8 @@ const AIActions = () => {
             setModalContent(response.data.summary);
             setIsModalOpen(true);
         } catch (error) {
-            toast.error("Failed to generate summary.");
+            const errorMsg = error.response?.data?.error || error.response?.data?.message || "Failed to generate summary.";
+            toast.error(errorMsg);
         } finally {
             setLoadingAction(null);
         }
@@ -37,16 +37,14 @@ const AIActions = () => {
         }
         setLoadingAction("explain");
         try {
-            const response = await aiService.explainConcept(
-                documentId,
-                concept
-            );
-            setModalTitle(`Explanation of "${concept}"`);
+            const response = await aiService.explainConcept(documentId, concept);
+            setModalTitle(`Explanation: ${concept}`);
             setModalContent(response.data.explanation);
             setIsModalOpen(true);
             setConcept("");
         } catch (error) {
-            toast.error("Failed to explain concept.");
+            const errorMsg = error.response?.data?.error || error.response?.data?.message || "Failed to explain concept.";
+            toast.error(errorMsg);
         } finally {
             setLoadingAction(null);
         }
@@ -54,99 +52,80 @@ const AIActions = () => {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setTimeout(() => {
-            setModalContent("");
-            setModalTitle("");
-        }, 300);
+        setTimeout(() => { setModalContent(""); setModalTitle(""); }, 300);
     };
 
     return (
         <>
-            <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="space-y-6 animate-in fade-in duration-500 w-full">
+                
                 {/* Header */}
-                <div className="flex items-center gap-4 px-2">
-                    <div className="relative">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-inner">
-                            <Sparkles className="text-emerald-400" size={24} strokeWidth={2} />
-                        </div>
+                <div className="flex items-center gap-3 px-1 w-full">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-inner shrink-0">
+                        <Sparkles className="text-emerald-400" size={20} strokeWidth={2} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-bold text-white tracking-tight">
-                            AI Assistant
-                        </h3>
-                        <p className="text-sm text-zinc-400">Powered by advanced AI</p>
+                        <h3 className="text-base font-bold text-white tracking-tight">AI Assistant</h3>
+                        <p className="text-xs text-zinc-400">Powered by advanced AI</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Generate Summary */}
-                    <div className="bg-white/2 border border-white/5 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/4 transition-all duration-300 shadow-xl shadow-black/20 flex flex-col group">
+                {/* Grid: Strictly 1 column, full width everywhere */}
+                <div className="grid grid-cols-1 gap-4 md:gap-6 w-full">
+                    
+                    {/* Card: Summary */}
+                    <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 md:p-6 hover:bg-white/10 transition-all duration-300 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
                         <div className="flex-1">
-                            <div className="mb-6">
-                                <div className="mb-4">
-                                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-emerald-500/10 group-hover:border-emerald-500/20 group-hover:text-emerald-400 transition-colors text-zinc-400">
-                                        <BookOpen className="" size={20} strokeWidth={2} />
-                                    </div>
+                            <div className="flex items-center gap-3 mb-2 md:mb-3">
+                                <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 shrink-0">
+                                    <BookOpen size={18} />
                                 </div>
-                                <h4 className="text-lg font-bold text-white mb-2 tracking-tight">Generate Summary</h4>
-                                <p className="text-sm text-zinc-400 leading-relaxed">
-                                    Get a concise summary of the entire document.
-                                </p>
+                                <h4 className="font-bold text-white text-sm md:text-base">Generate Summary</h4>
                             </div>
-                            <button
-                                onClick={handleGenerateSummary}
-                                disabled={loadingAction === "summary"}
-                                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
-                            >
-                                {loadingAction === "summary" ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-black/20 border-t-black animate-spin rounded-full" />
-                                        Loading...
-                                    </span>
-                                ) : (
-                                    "Summarize"
-                                )}
-                            </button>
+                            <p className="text-xs md:text-sm text-zinc-400 leading-relaxed max-w-2xl">
+                                Get a concise, high-level summary of the entire document. Perfect for a quick overview before diving deep.
+                            </p>
                         </div>
+                        <button
+                            onClick={handleGenerateSummary}
+                            disabled={loadingAction === "summary"}
+                            className="w-full lg:w-auto shrink-0 lg:px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-50 active:scale-[0.98] mt-2 lg:mt-0"
+                        >
+                            {loadingAction === "summary" ? "Loading..." : "Summarize Document"}
+                        </button>
                     </div>
 
-                    {/* Explain Concept */}
-                    <div className="bg-white/2 border border-white/5 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/4 transition-all duration-300 shadow-xl shadow-black/20 flex flex-col group">
-                        <form onSubmit={handleExplainConcept} className="flex-1 flex flex-col">
-                            <div className="flex-1 mb-6">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-amber-500/10 group-hover:border-amber-500/20 group-hover:text-amber-400 transition-colors text-zinc-400">
-                                        <Lightbulb className="" size={20} strokeWidth={2} />
+                    {/* Card: Explain Concept */}
+                    <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 md:p-6 hover:bg-white/10 transition-all duration-300 shadow-xl flex flex-col">
+                        <form onSubmit={handleExplainConcept} className="flex flex-col h-full gap-4 md:gap-5">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2 md:mb-3">
+                                    <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-amber-400 shrink-0">
+                                        <Lightbulb size={18} />
                                     </div>
-                                    <h4 className="text-lg font-bold text-white tracking-tight">Explain a Concept</h4>
+                                    <h4 className="font-bold text-white text-sm md:text-base">Explain Concept</h4>
                                 </div>
-                                <p className="text-sm text-zinc-400 leading-relaxed mb-4">
-                                    Enter a topic or concept from the document to get a detailed explanation.
+                                <p className="text-xs md:text-sm text-zinc-400 leading-relaxed max-w-2xl">
+                                    Enter a specific topic to get a deep-dive explanation based on the context of this document.
                                 </p>
-                                <div className="space-y-4 mt-auto">
-                                    <input
-                                        type="text"
-                                        value={concept}
-                                        onChange={(e) => setConcept(e.target.value)}
-                                        placeholder="Enter concept..."
-                                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/50 transition-colors placeholder:text-zinc-600"
-                                        disabled={loadingAction === "explain"}
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={loadingAction === "explain" || !concept.trim()}
-                                        className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
-                                    >
-                                        {loadingAction === "explain" ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <div className="w-4 h-4 border-2 border-white/20 border-t-white animate-spin rounded-full" />
-                                                Loading...
-                                            </span>
-                                        ) : (
-                                            "Explain"
-                                        )}
-                                    </button>
-                                </div>
+                            </div>
+                            
+                            <div className="flex flex-col md:flex-row gap-3 md:gap-4 w-full">
+                                <input
+                                    type="text"
+                                    value={concept}
+                                    onChange={(e) => setConcept(e.target.value)}
+                                    placeholder="Enter concept..."
+                                    className="flex-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-xs md:text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                    disabled={loadingAction === "explain"}
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={loadingAction === "explain" || !concept.trim()}
+                                    className="w-full md:w-auto shrink-0 md:px-8 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-50 active:scale-[0.98]"
+                                >
+                                    {loadingAction === "explain" ? "Loading..." : "Explain Concept"}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -154,12 +133,8 @@ const AIActions = () => {
             </div>
 
             {/* Results Modal */}
-            <Modal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-                title={modalTitle}
-            >
-                <div className="w-full">
+            <Modal isOpen={isModalOpen} onClose={closeModal} title={modalTitle}>
+                <div className="text-sm text-zinc-300 leading-relaxed pr-2">
                     <MarkdownRenderer content={modalContent} />
                 </div>
             </Modal>

@@ -26,10 +26,17 @@ const app = express();
 //Connect to MongoDB
 connectDB();
 
-//Middleware to handle CORS
+// Middleware to handle CORS
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        // This function dynamically allows localhost AND your phone's local network IP
+        origin: function (origin, callback) {
+            if (!origin || origin.includes('localhost') || origin.includes('192.168.1.7')) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true,

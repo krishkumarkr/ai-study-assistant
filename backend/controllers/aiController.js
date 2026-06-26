@@ -5,6 +5,52 @@ import ChatHistory from '../models/ChatHistory.js';
 import * as geminiService from '../utils/geminiService.js';
 import { findRelevantChunks } from '../utils/textChunker.js';
 
+// ==========================================
+// CENTRALIZED AI ERROR HANDLER
+// ==========================================
+const handleAIError = (error, res, next) => {
+    const errorMessage = error.message?.toLowerCase() || '';
+
+    // 1. Rate Limiting / Quota Reached
+    if (error.status === 429 || errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('too many requests')) {
+        return res.status(429).json({
+            success: false,
+            error: 'AI models are currently in high demand. Please wait 30 seconds and try again.',
+            statusCode: 429
+        });
+    }
+
+    // 2. Safety / Content Blocking
+    if (errorMessage.includes('safety') || errorMessage.includes('blocked') || errorMessage.includes('prohibited')) {
+        return res.status(400).json({
+            success: false,
+            error: 'Generation blocked: The document contains content that violates AI safety guidelines.',
+            statusCode: 400
+        });
+    }
+
+    // 3. Token Limit / Context Too Large
+    if (errorMessage.includes('token') || errorMessage.includes('maximum context length') || errorMessage.includes('too large')) {
+        return res.status(413).json({
+            success: false,
+            error: 'The document section is too large for the AI to process at once. Try asking a more specific question.',
+            statusCode: 413
+        });
+    }
+
+    // 4. Service Unavailable / Google Servers Overloaded
+    if (error.status === 503 || errorMessage.includes('503') || errorMessage.includes('overloaded')) {
+        return res.status(503).json({
+            success: false,
+            error: 'The AI service is temporarily overloaded. Please try again in a few moments.',
+            statusCode: 503
+        });
+    }
+
+    // 5. Not an AI error? Pass it to the standard Express error handler
+    next(error);
+};
+
 
 // @desc    Generate flashcards from document
 // @route   POST /api/ai/generate-flashcards
@@ -21,7 +67,7 @@ export const generateFlashcards = async (req, res, next) => {
             });
         }
 
-        const document = await Document.findOne ({
+        const document = await Document.findOne({
             _id: documentId,
             userId: req.user._id,
             status: 'ready'
@@ -61,16 +107,7 @@ export const generateFlashcards = async (req, res, next) => {
         });
 
     } catch (error) {
-
-        if (error.status === 429 || (error.message && error.message.includes('429'))) {
-            return res.status(429).json({
-                success: false,
-                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
-                statusCode: 429
-            });
-        }
-
-        next(error)
+        handleAIError(error, res, next);
     }
 };
 
@@ -127,16 +164,7 @@ export const generateQuiz = async (req, res, next) => {
         });
 
     } catch (error) {
-
-        if (error.status === 429 || (error.message && error.message.includes('429'))) {
-            return res.status(429).json({
-                success: false,
-                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
-                statusCode: 429
-            });
-        }
-
-        next(error)
+        handleAIError(error, res, next);
     }
 };
 
@@ -148,7 +176,7 @@ export const generateSummary = async (req, res, next) => {
         const {documentId} = req.body;
 
         if (!documentId) {
-            res.status(400).json({
+            return res.status(400).json({
                 success: false,
                 error: 'Please provide documentId',
                 statusCode: 400
@@ -182,16 +210,7 @@ export const generateSummary = async (req, res, next) => {
             message: 'Summary generated successfully'
         });
     } catch (error) {
-
-        if (error.status === 429 || (error.message && error.message.includes('429'))) {
-            return res.status(429).json({
-                success: false,
-                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
-                statusCode: 429
-            });
-        }
-
-        next(error)
+        handleAIError(error, res, next);
     }
 };
 
@@ -203,7 +222,7 @@ export const chat = async (req, res, next) => {
         const { documentId, question } = req.body;
 
         if (!documentId || !question) {
-            res.status(400).json({
+            return res.status(400).json({
                 success: false,
                 error: 'Please provide documentId and question',
                 statusCode: 400
@@ -275,16 +294,7 @@ export const chat = async (req, res, next) => {
         });
 
     } catch (error) {
-
-        if (error.status === 429 || (error.message && error.message.includes('429'))) {
-            return res.status(429).json({
-                success: false,
-                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
-                statusCode: 429
-            });
-        }
-
-        next(error);
+        handleAIError(error, res, next);
     }
 };
 
@@ -335,16 +345,7 @@ export const explainConcept = async (req, res, next) => {
         });
 
     } catch (error) {
-
-        if (error.status === 429 || (error.message && error.message.includes('429'))) {
-            return res.status(429).json({
-                success: false,
-                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
-                statusCode: 429
-            });
-        }
-
-        next(error);
+        handleAIError(error, res, next);
     }
 };
 
@@ -383,15 +384,6 @@ export const getChatHistory = async (req, res, next) => {
         });
 
     } catch (error) {
-
-        if (error.status === 429 || (error.message && error.message.includes('429'))) {
-            return res.status(429).json({
-                success: false,
-                error: 'AI is currently busy (Rate Limit). Please wait 30 seconds and try again.',
-                statusCode: 429
-            });
-        }
-
         next(error);
     }
 };
