@@ -9,7 +9,11 @@ import { findRelevantChunks } from '../utils/textChunker.js';
 // CENTRALIZED AI ERROR HANDLER
 // ==========================================
 const handleAIError = (error, res, next) => {
-    const errorMessage = error.message?.toLowerCase() || '';
+    // Safely extract the message, or an empty string if undefined
+    const errorMessage = (error.message || '').toLowerCase();
+    
+    // Log the exact error to your terminal so you can see what Google is actually throwing
+    console.error("🔴 AI Service Error Caught:", error.message || error);
 
     // 1. Rate Limiting / Quota Reached
     if (error.status === 429 || errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('too many requests')) {
@@ -33,16 +37,29 @@ const handleAIError = (error, res, next) => {
     if (errorMessage.includes('token') || errorMessage.includes('maximum context length') || errorMessage.includes('too large')) {
         return res.status(413).json({
             success: false,
-            error: 'The document section is too large for the AI to process at once. Try asking a more specific question.',
+            error: 'The document section is too large for the AI to process at once. Try asking a smaller question.',
             statusCode: 413
         });
     }
 
-    // 4. Service Unavailable / Google Servers Overloaded
-    if (error.status === 503 || errorMessage.includes('503') || errorMessage.includes('overloaded')) {
+    // 4. Service Unavailable / Network / Server Crashes
+    // 💡 THE FIX: Catching 500, 502, 503, 504, fetch failures, and timeouts!
+    if (
+        error.status >= 500 || 
+        errorMessage.includes('503') || 
+        errorMessage.includes('500') || 
+        errorMessage.includes('502') || 
+        errorMessage.includes('504') || 
+        errorMessage.includes('overloaded') ||
+        errorMessage.includes('service unavailable') ||
+        errorMessage.includes('fetch failed') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('internal server error') ||
+        errorMessage.includes('network error')
+    ) {
         return res.status(503).json({
             success: false,
-            error: 'The AI service is temporarily overloaded. Please try again in a few moments.',
+            error: 'The AI service is temporarily overloaded or unavailable. Please try again in a few moments.',
             statusCode: 503
         });
     }
