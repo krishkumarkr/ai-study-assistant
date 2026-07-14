@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import {GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
@@ -8,245 +8,201 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 if (!process.env.GEMINI_API_KEY) {
     console.error('FATAL ERROR: GEMINI_API_KEY is not set in the environment variables.');
     process.exit(1);
-
 }
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-/**
-I
-* Generate flashcards from text
-* @param {string} text - Document text
-* @param {number} count - Number of flashcards to generate
-* @returns {Promise<Array<{question: string, answer: string, difficulty: string}>>}
-*/
-export const generateFlashcards = async (text, count = 10) => {
-    const prompt = `Generate exactly ${count} educational flashcards from the following text.
-    Format each flashcard as:
-    Q: [Clear, specific question]
-    A: [Concise, accurate answer]
-    D: [Difficulty level: easy, medium, or hard]
+const withExponentialBackoff = async (operation, maxRetries = 3, baseDelayMs = 2000) => {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+        try {
+            return await operation();
+        } catch (error) {
+            const errorMessage = (error.message || '').toLowerCase();
+            const isRateLimit = error.status === 429 || errorMessage.includes('429') || errorMessage.includes('quota');
+            const isServerOverload = error.status === 503 || errorMessage.includes('503') || errorMessage.includes('overloaded');
 
-    Separate each flashcard with "---"
-
-    Text:
-    ${text.substring(0, 15000)}`;
-
-    try {
-
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite",
-            contents: prompt,
-        });
-        
-        const generatedText = response.text;
-
-        // Parse the response
-        const flashcards = [];
-        const cards = generatedText.split('---').filter(c => c.trim());
-
-        for (const card of cards) {
-            const lines = card.trim().split('\n');
-            let question = '', answer = '', difficulty = 'medium';
-
-            for (const line of lines) {
-                if (line.startsWith('Q:')) {
-                    question = line.substring(2).trim();
-                } else if (line.startsWith('A:')) {
-                    answer = line.substring(2).trim();
-                } else if (line.startsWith('D:')) {
-                    const diff = line.substring(2).trim().toLowerCase();
-                    if (['easy', 'medium', 'hard'].includes(diff)) {
-                        difficulty = diff;
-                    }
-                }
-            }
-
-            if (question && answer) {
-                flashcards.push({ question, answer, difficulty });
+            if ((isRateLimit || isServerOverload) && attempt < maxRetries - 1) {
+                attempt++;
+                const waitTime = (baseDelayMs * Math.pow(2, attempt - 1)) + (Math.random() * 500);
+                console.warn(`[Gemini API] Rate limit/Overload hit. Retrying attempt ${attempt}/${maxRetries - 1} in ${Math.round(waitTime)}ms...`);
+                await delay(waitTime);
+            } else {
+                throw error;
             }
         }
+    }
+};
 
+/**
+ * Generate flashcards (Upgraded to Strict JSON)
+ */
+export const generateFlashcards = async (text, count = 10) => {
+    const prompt = `You are an expert educator. Extract the most important facts, definitions, and concepts from the text below.
+    Generate exactly ${count} flashcards. 
+    
+    Output ONLY a valid JSON array of objects. Do not include markdown code blocks.
+    Schema: [{ "question": "string", "answer": "string", "difficulty": "easy|medium|hard" }]
+
+    Text:
+    ${text}`;
+
+    try {
+        const response = await withExponentialBackoff(() => 
+            ai.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json", // ⬅️ THE MAGIC BULLET
+                }
+            })
+        );
+        
+        // Look how clean this is now! No more string splitting!
+        const flashcards = JSON.parse(response.text);
         return flashcards.slice(0, count);
+
     } catch (error) {
-        console.error('Gemini API error:', error);
+        console.error('Gemini API error in generateFlashcards:', error.message || error);
         throw error;
     }
 };
 
-
 /**
-* Generate quiz questions
-* @param {string} text - Document text
-* @param {number} numQuestions - Number of questions
-* @returns {Promise<Array<{question: string, options: Array, correctAnswer: string, explanation: string, difficulty: string}>>}
-*/
+ * Generate quiz questions (Upgraded to Strict JSON)
+ */
 export const generateQuiz = async (text, numQuestions= 5) => {
-    const prompt = `Generate exactly ${numQuestions} multiple choice questions from the following text.
-    Format each question as:
-    Q: [Question]
-    01: [Option 1]
-    02: [Option 2]
-    03: [Option 3]
-    04: [Option 4]
-    C: [Correct option - EXACTLY as written above, SO THE USER'S ANSWER CAN BE CHECK CORRECTLY]
-    E: [Brief explanation, (explain in context of the document), make it understandable]
-    D: [Difficulty: easy, medium, or hard]
-
-    Separate questions with "---"
+    const prompt = `You are a strict academic examiner. Create exactly ${numQuestions} challenging multiple-choice questions based on the text below.
+    The questions should test deep understanding, not just basic recall.
     
+    Output ONLY a valid JSON array of objects. Do not include markdown code blocks.
+    Schema: [{ 
+        "question": "string", 
+        "options": ["string", "string", "string", "string"], 
+        "correctAnswer": "string (must exactly match one of the options)", 
+        "explanation": "string (briefly explain why it is correct based on the text)", 
+        "difficulty": "easy|medium|hard" 
+    }]
+
     Text: 
-    ${text.substring(0, 15000)}`;
+    ${text}`; 
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite",
-            contents: prompt,
-        });
-
-        const generatedText = response.text;
-
-        const questions = [];
-        const questionBlocks = generatedText.split('---').filter(q => q.trim());
-
-        for (const block of questionBlocks) {
-            const lines = block.trim().split('\n');
-            let question = '', options = [], correctAnswer = '', explanation = '', difficulty = 'medium';
-
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('Q:')) {
-                    question = trimmed.substring(2).trim();
-                } else if (trimmed.match(/^0\d:/)) {
-                    options.push(trimmed.substring(3).trim());
-                } else if (trimmed.startsWith('C:')) {
-                    correctAnswer = trimmed.substring(2).trim();
-                } else if (trimmed.startsWith('E:')) {
-                    explanation = trimmed.substring(2).trim();
-                } else if (trimmed.startsWith('D:')) {
-                    const diff = trimmed.substring(2).trim().toLowerCase();
-                    if (['easy', 'medium', 'hard'].includes(diff)) {
-                        difficulty = diff;
-                    }
+        const response = await withExponentialBackoff(() => 
+            ai.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json", // ⬅️ THE MAGIC BULLET
                 }
-            }
+            })
+        );
 
-            if (question && options.length === 4 && correctAnswer) {
-                questions.push({ question, options, correctAnswer, explanation, difficulty });
-            }
-        }
-
+        // Boom. Instant, perfect arrays.
+        const questions = JSON.parse(response.text);
         return questions.slice(0, numQuestions);
 
     } catch (error) {
-        console.error('Gemini API error: ', error);
+        console.error('Gemini API error in generateQuiz: ', error.message || error);
         throw error;
     }
 };
 
-
 /**
-* Generate document summary
-* @param {string} text - Document text
-* @returns {Promise<string>}
-*/
-
+ * Generate document summary (Upgraded for Markdown & Structure)
+ */
 export const generateSummary = async (text) => {
-    const prompt = `Provide a concise summary of the following text, highlighting the key concepts, main ideas, and important points.
-    Keep the summary clear and structured.
+    const prompt = `You are an expert analyst and technical writer. Your task is to provide a deep, highly detailed summary of the ENTIRE text provided below. 
+
+    CRITICAL INSTRUCTION: You are processing a massive document. You MUST summarize the entire text from start to finish. Do not just summarize the introduction. You must explicitly cover the beginning, middle, and conclusion of the provided text.
+
+    Formatting rules:
+    1. **Executive Overview:** Start with a 3-4 sentence high-level overview of the entire document's primary narrative, purpose, or core argument.
+    2. **Comprehensive Breakdown:** Use Markdown headers (##) to divide the summary into logical sections (e.g., Chronological Parts, Core Chapters, or Major Themes). Write at least one robust paragraph for each section, ensuring you cover the ending of the document.
+    3. **Key Concepts & Takeaways:** Include a bulleted list of the 5-7 most important concepts, themes, or plot points that span the entire document.
+    4. Keep the tone professional, highly structured, and deeply informative.
 
     Text:
-    ${text.substring(0, 20000)}`;
+    ${text}`; 
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite",
-            contents: prompt,
-        });
-        const generatedText = response.text;
-        return generatedText
+        const response = await withExponentialBackoff(() => 
+            ai.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt,
+            })
+        );
+        return response.text;
     } catch (error) {
-        console.error('Gemini API error:', error);
+        console.error('Gemini API error in generateSummary:', error.message || error);
         throw error;
     }
 };
 
 /**
-* Chat with document context
-* @param {string} question - User question
-* @param {Array<Object>} chunks - Relevant document chunks
-* @returns {Promise<string>}
-*/
-
-
+ * Chat with document context (Upgraded Persona)
+ */
 export const chatWithContext = async (question, chunks) => {
-    const context = chunks.map((c, i) => `[Chunk ${i + 1}]\n${c.content}`).join('\n\n');
+    const context = chunks.map((c, i) => `[Document Section ${i + 1}]\n${c.content}`).join('\n\n');
 
-    // const prompt = `Based on the following context from a document, Analyse the context and answer the user's question.
-    // If the answer is not in the context, say so.
+    const prompt = `You are an elite, highly intelligent study assistant. Your goal is to help a student deeply understand their course materials.
 
-    // Context:
-    // ${context}
-
-    // Question: ${question}
-
-    // Answer:`;
-
-    const prompt = `You are a helpful, witty, and grounded AI collaborator. 
-
-    Context: 
+    Source Material: 
     """
     ${context}
     """
 
-    User Question: "${question}"
+    Student's Question: "${question}"
 
-    Instructions:
-    1. If the context is missing, empty, or just repeats the question, don't give a generic error. Instead, politely explain what's missing and offer a specific example of how I can help (e.g., "I'm ready to dive in, but I need the document text first!").
-    2. If the answer is in the context, be concise and highlight the key points.
-    3. If the answer is NOT in the context, say so clearly but offer to help based on your general knowledge if appropriate.
+    Rules for your response:
+    1. Grounding: You must base your answer primarily on the Source Material provided above. 
+    2. Clarity: Use Markdown (bullet points, bold text) to make your answer highly readable.
+    3. Missing Info: If the Source Material does not contain the answer, politely state: "I cannot find the exact answer in the provided document sections," and then offer a general educational explanation if appropriate.
+    4. Tone: Be encouraging, concise, and academically rigorous. Do not use generic AI filler phrases like "Sure, I can help with that." Just answer the question directly.
 
     Answer:`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite",
-            contents: prompt,
-
-        });
-        console.log('Gemini response:', response);
-        const generatedText = response.text;
-
-        return generatedText
+        const response = await withExponentialBackoff(() => 
+            ai.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt,
+            })
+        );
+        return response.text;
     } catch (error) {
-        console.error('Gemini API error:', error);
-            throw error;
-        }
+        console.error('Gemini API error in chatWithContext:', error.message || error);
+        throw error;
+    }
 };
 
 /**
-* Explain a specific concept
-* @param {string} concept - Concept to explain
-* @param {string} context - Relevant context
-* @returns {Promise<string>}
-*/
-
+ * Explain a specific concept (Upgraded Persona)
+ */
 export const explainConcept = async (concept, context) => {
-    const prompt = `Explain the concept of "${concept}" based on the following context.
-    Provide a clear, educational explanation that's easy to understand.
-    Include examples if relevant.
+    const prompt = `You are a world-class professor explaining complex topics to a student.
+    
+    Task: Explain the concept of "${concept}" based on the provided context.
+    
+    Requirements:
+    1. Start with a simple, one-sentence ELI5 (Explain Like I'm 5) definition.
+    2. Dive into the technical details using the provided context.
+    3. Provide a real-world analogy or example to cement their understanding.
+    4. Use Markdown structuring for readability.
 
     Context:
-    ${context.substring(0, 10000)}`;
+    ${context}`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite",
-            contents: prompt,
-        });
-        const generatedText = response.text;
-        return generatedText
+        const response = await withExponentialBackoff(() => 
+            ai.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt,
+            })
+        );
+        return response.text;
     } catch (error) {
-        console.error('Gemini API error:', error);
+        console.error('Gemini API error in explainConcept:', error.message || error);
         throw error;
     }
 };

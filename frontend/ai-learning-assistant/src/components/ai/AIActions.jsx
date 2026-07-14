@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
-import { Sparkles, BookOpen, Lightbulb } from "lucide-react";
+import { Sparkles, BookOpen, Lightbulb, Loader2 } from "lucide-react";
 import aiService from "../../services/aiService";
 import toast from "react-hot-toast";
 import MarkdownRenderer from "../common/MarkdownRenderer";
@@ -22,6 +22,7 @@ const AIActions = () => {
             setModalContent(response.data.summary);
             setIsModalOpen(true);
         } catch (error) {
+            // This perfectly catches the 403 quota or 429 rate limit messages!
             const errorMsg = error.response?.data?.error || error.response?.data?.message || "Failed to generate summary.";
             toast.error(errorMsg);
         } finally {
@@ -30,7 +31,7 @@ const AIActions = () => {
     };
 
     const handleExplainConcept = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!concept.trim()) {
             toast.error("Please enter a concept to explain.");
             return;
@@ -70,14 +71,14 @@ const AIActions = () => {
                     </div>
                 </div>
 
-                {/* Grid: Strictly 1 column, full width everywhere */}
+                {/* Grid Container */}
                 <div className="grid grid-cols-1 gap-4 md:gap-6 w-full">
                     
                     {/* Card: Summary */}
-                    <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 md:p-6 hover:bg-white/10 transition-all duration-300 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5">
+                    <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 md:p-6 hover:bg-white/10 hover:border-white/10 transition-all duration-300 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-5 group">
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2 md:mb-3">
-                                <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 shrink-0">
+                                <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
                                     <BookOpen size={18} />
                                 </div>
                                 <h4 className="font-bold text-white text-sm md:text-base">Generate Summary</h4>
@@ -88,19 +89,26 @@ const AIActions = () => {
                         </div>
                         <button
                             onClick={handleGenerateSummary}
-                            disabled={loadingAction === "summary"}
-                            className="w-full lg:w-auto shrink-0 lg:px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-50 active:scale-[0.98] mt-2 lg:mt-0"
+                            disabled={loadingAction !== null}
+                            className="w-full lg:w-auto shrink-0 lg:px-8 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-700 disabled:text-zinc-400 text-black rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-50 active:scale-[0.98] mt-2 lg:mt-0 flex items-center justify-center gap-2 shadow-lg"
                         >
-                            {loadingAction === "summary" ? "Loading..." : "Summarize Document"}
+                            {loadingAction === "summary" ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Summarizing...</span>
+                                </>
+                            ) : (
+                                "Summarize Document"
+                            )}
                         </button>
                     </div>
 
                     {/* Card: Explain Concept */}
-                    <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 md:p-6 hover:bg-white/10 transition-all duration-300 shadow-xl flex flex-col">
+                    <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 md:p-6 hover:bg-white/10 hover:border-white/10 transition-all duration-300 shadow-xl flex flex-col group">
                         <form onSubmit={handleExplainConcept} className="flex flex-col h-full gap-4 md:gap-5">
                             <div>
                                 <div className="flex items-center gap-3 mb-2 md:mb-3">
-                                    <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-amber-400 shrink-0">
+                                    <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
                                         <Lightbulb size={18} />
                                     </div>
                                     <h4 className="font-bold text-white text-sm md:text-base">Explain Concept</h4>
@@ -115,16 +123,23 @@ const AIActions = () => {
                                     type="text"
                                     value={concept}
                                     onChange={(e) => setConcept(e.target.value)}
-                                    placeholder="Enter concept..."
-                                    className="flex-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-xs md:text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
-                                    disabled={loadingAction === "explain"}
+                                    placeholder="Enter concept (e.g., Database Indexing)..."
+                                    className="flex-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-xs md:text-sm focus:outline-none focus:border-emerald-500/50 disabled:opacity-40 transition-all"
+                                    disabled={loadingAction !== null}
                                 />
                                 <button
                                     type="submit"
-                                    disabled={loadingAction === "explain" || !concept.trim()}
-                                    className="w-full md:w-auto shrink-0 md:px-8 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-50 active:scale-[0.98]"
+                                    disabled={loadingAction !== null || !concept.trim()}
+                                    className="w-full md:w-auto shrink-0 md:px-8 py-3 bg-white/10 hover:bg-white text-white hover:text-black border border-white/5 rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-30 disabled:bg-white/5 disabled:text-white active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
-                                    {loadingAction === "explain" ? "Loading..." : "Explain Concept"}
+                                    {loadingAction === "explain" ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            <span>Analyzing...</span>
+                                        </>
+                                    ) : (
+                                        "Explain Concept"
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -134,7 +149,7 @@ const AIActions = () => {
 
             {/* Results Modal */}
             <Modal isOpen={isModalOpen} onClose={closeModal} title={modalTitle}>
-                <div className="text-sm text-zinc-300 leading-relaxed pr-2">
+                <div className="text-sm text-zinc-300 leading-relaxed pr-2 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     <MarkdownRenderer content={modalContent} />
                 </div>
             </Modal>

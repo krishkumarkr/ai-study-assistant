@@ -7,8 +7,6 @@ import { uploadToR2, deleteFromR2 } from '../utils/r2Storage.js';
 import mongoose from 'mongoose';
 import ChatHistory from '../models/ChatHistory.js';
 
-// Notice: 'fs' and 'path' are completely removed because we no longer touch the hard drive!
-
 // @desc    Upload PDF document
 // @route   POST /api/document/upload
 // @access  Private
@@ -25,7 +23,6 @@ export const uploadDocument = async (req, res, next) => {
         const { title } = req.body;
 
         if (!title) {
-            // No need to delete a local file here anymore, the RAM buffer will just clear itself
             return res.status(400).json({
                 success: false,
                 error: 'Please provide a document title',
@@ -33,25 +30,47 @@ export const uploadDocument = async (req, res, next) => {
             });
         }
 
-        // 1. Upload the file buffer from RAM directly to Cloudflare R2
+        // 2. EXTRACT TEXT & CHECK TOKEN DENSITY IMMEDIATELY
+        let extractedText = "";
+        try {
+            const parsed = await extractTextFromPDF(req.file.buffer);
+            extractedText = parsed.text;
+        } catch (err) {
+            return res.status(400).json({
+                success: false,
+                error: 'Failed to read PDF. The file might be corrupted or encrypted.',
+                statusCode: 400
+            });
+        }
+
+        // 3. THE TOKEN BOUNCER (Approx 30 pages)
+        const MAX_CHARACTERS = 100000;
+
+        if (extractedText.length > MAX_CHARACTERS) {
+            return res.status(413).json({
+                success: false,
+                error: `Document is too long. The free tier is limited to approximately 30 pages. This document has ${extractedText.length.toLocaleString()} characters.`,
+                statusCode: 413
+            });
+        }
+
+        // 4. NOW it is safe! Upload to Cloudflare R2
         const publicFileUrl = await uploadToR2(req.file.buffer, req.file.originalname, req.file.mimetype);
-        
-        // 2. Extract the unique filename from the URL to store in the DB
         const uniqueFileName = publicFileUrl.split('/').pop();
 
-        // 3. Create document record
+        // 5. Create document record in MongoDB
         const document = await Document.create({
             userId: req.user._id,
             title,
             fileName: uniqueFileName,
-            filePath: publicFileUrl, // Store the production R2 cloud URL!
+            filePath: publicFileUrl,
             fileSize: req.file.size,
             status: 'processing'
         });
 
-        // 4. Process PDF in background using the RAM buffer
-        processPDF(document._id, req.file.buffer).catch(err => {
-            console.error('PDF processing error:', err);
+        // 6. Process chunking in background (pass the text, not the buffer)
+        processDocumentChunks(document._id, extractedText).catch(err => {
+            console.error('Text chunking error:', err);
         });
 
         res.status(201).json({
@@ -61,18 +80,14 @@ export const uploadDocument = async (req, res, next) => {
         });
 
     } catch (error) {
-        // No local file cleanup needed on error anymore
         next(error);
     }
 };
 
-// Helper function to process PDF
-// Changed parameter from 'filePath' to 'fileBuffer'
-const processPDF = async (documentId, fileBuffer) => {
+// Helper function to process Chunks in the background
+// Renamed and updated to accept the already-extracted text
+const processDocumentChunks = async (documentId, text) => {
     try {
-        // Extract text directly from the memory buffer
-        const { text } = await extractTextFromPDF(fileBuffer);
-
         // Create chunks
         const chunks = chunkText(text, 500, 50);
 
@@ -83,12 +98,13 @@ const processPDF = async (documentId, fileBuffer) => {
             status: 'ready'
         });
 
-        console.log(`Document ${documentId} processed successfully`);
+        console.log(`Document ${documentId} chunked and processed successfully`);
     } catch (error) {
-        console.error(`Error processing document ${documentId}:`, error);
+        console.error(`Error chunking document ${documentId}:`, error);
 
         await Document.findByIdAndUpdate(documentId, {
-            status: 'failed'
+            status: 'failed',
+            errorReason: 'Failed to process document content.'
         });
     }
 };
@@ -121,7 +137,7 @@ export const getDocuments = async (req, res, next) => {
             {
                 $addFields: {
                     flashcardCount: { $size: '$flashcardSets' },
-                    quizCount: { $size: '$quizzes'}
+                    quizCount: { $size: '$quizzes' }
                 }
             },
             {
@@ -139,7 +155,7 @@ export const getDocuments = async (req, res, next) => {
             }
         ]);
 
-        res.status(200).json ({
+        res.status(200).json({
             success: true,
             count: documents.length,
             data: documents
@@ -188,7 +204,7 @@ export const getDocument = async (req, res, next) => {
         documentData.flashcardCount = flashcardCount;
         documentData.quizCount = quizCount;
 
-        res.status(200).json ({
+        res.status(200).json({
             success: true,
             data: documentData
         });
@@ -208,7 +224,7 @@ export const deleteDocument = async (req, res, next) => {
             userId: req.user._id
         });
 
-        if(!document) {
+        if (!document) {
             return res.status(404).json({
                 success: false,
                 error: 'Document not found',
@@ -228,7 +244,7 @@ export const deleteDocument = async (req, res, next) => {
         // This ensures no "ghost" flashcards or quizzes are left behind.
         await Flashcard.deleteMany({ documentId: document._id });
         await Quiz.deleteMany({ documentId: document._id });
-        await ChatHistory.deleteOne({ documentId: document._id });
+        await ChatHistory.deleteMany({ documentId: document._id });
 
         // 4. Delete document from MongoDB
         await document.deleteOne();

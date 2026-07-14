@@ -67,7 +67,16 @@ const DocumentListPage = () => {
       setUploadTitle("");
       await fetchDocuments();
     } catch (error) {
-      toast.error(error.message || "Upload failed.");
+      // 🚨 THE FIX: Digging into the Axios response to find our custom backend error
+      const errorMessage = 
+        error.response?.data?.error || 
+        error.response?.data?.message || 
+        error.message || 
+        "Upload failed.";
+
+      toast.error(errorMessage, {
+        duration: 5000, // Keep it visible for 5 seconds so they can read the character count
+      });
     } finally {
       setUploading(false);
     }
@@ -88,7 +97,8 @@ const DocumentListPage = () => {
       setSelectedDoc(null);
       setDocuments(documents.filter((d) => d._id !== selectedDoc._id));
     } catch (error) {
-      toast.error(error.message || "Failed to delete document.");
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "Failed to delete document.";
+      toast.error(errorMessage);
     } finally {
       setDeleting(false);
     }
@@ -135,7 +145,6 @@ const DocumentListPage = () => {
     }
 
     return (
-      // CHANGED THIS LINE: Removed sm:grid-cols-2 so it stays 1 column until lg screens
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 animate-in slide-in-from-bottom-4 duration-500">
         {documents?.map((doc) => (
           <DocumentCard
@@ -245,7 +254,7 @@ const DocumentListPage = () => {
                         )}
                       </p>
                       <p className="text-[9px] md:text-[10px] font-bold text-zinc-600 uppercase tracking-[0.15em] mt-2">
-                        PDF up to 100MB
+                        PDF up to 10MB
                       </p>
                     </div>
                   </div>

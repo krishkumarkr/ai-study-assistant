@@ -25,6 +25,14 @@ const userSchema = new mongoose.Schema({
     profileImage: {
         type: String,
         default: null
+    },
+    aiUsage: {
+        summaries: { type: Number, default: 0 },
+        quizzes: { type: Number, default: 0 },
+        flashcards: { type: Number, default: 0 },
+        chats: { type: Number, default: 0 },
+        explanations: { type: Number, default: 0 },
+        lastReset: { type: Date, default: Date.now }
     }
 }, {
     timestamps: true

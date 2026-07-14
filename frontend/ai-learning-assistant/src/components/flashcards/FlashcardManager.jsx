@@ -53,7 +53,14 @@ const FlashcardManager = ({ documentId }) => {
             toast.success("Flashcards generated successfully!");
             fetchFlashcardSets();
         } catch (error) {
-            toast.error(error.message || "Failed to generate flashcards.");
+            // THE FIX: The Bulletproof Extractor
+            const errorMsg =
+                error?.response?.data?.error ||
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to generate flashcards. Please try again.";
+
+            toast.error(errorMsg);
         } finally {
             setGenerating(false);
         }
@@ -238,7 +245,7 @@ const FlashcardManager = ({ documentId }) => {
 
         return (
             <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 w-full">
-                
+
                 {/* CRITICAL FIX: Changed sm:flex-row to lg:flex-row. 
                   Now it stacks vertically on mobile AND tablet, preventing the cramped layout.
                 */}

@@ -14,7 +14,7 @@ import flashcardRoutes from './routes/flashcardRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import quizRoutes from './routes/quizRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
-
+import rateLimit from 'express-rate-limit'; // ⬅️ NEW: Imported the rate limiter
 
 //ES6 module __dirname alternative
 const __filename = fileURLToPath(import.meta.url);
@@ -49,13 +49,31 @@ app.use(express.urlencoded({extended: true}));
 //Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ==========================================
+// 🛡️ LAYER 1: THE BOUNCER (Global Rate Limit)
+// ==========================================
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes window
+    max: 150, // Limit each IP to 150 requests per 15 minutes
+    message: {
+        success: false,
+        error: "Too many requests from this IP, please try again after 15 minutes.",
+        statusCode: 429
+    },
+    standardHeaders: true, 
+    legacyHeaders: false, 
+});
+
+// Apply it globally to ALL /api routes
+app.use('/api', globalLimiter);
+
 //Routes
-app.use('/api/auth', authRoutes)
-app.use('/api/documents', documentRoutes)
-app.use('/api/flashcards', flashcardRoutes)
-app.use('/api/ai', aiRoutes)
-app.use('/api/quizzes', quizRoutes)
-app.use('/api/progress', progressRoutes)
+app.use('/api/auth', authRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/flashcards', flashcardRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/progress', progressRoutes);
 
 
 app.use(errorHandler);
@@ -80,4 +98,3 @@ process.on('unhandledRejection', (err) => {
     console.error(`Error: ${err.message}`);
     process.exit(1);
 });
-

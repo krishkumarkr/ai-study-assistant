@@ -67,7 +67,13 @@ const QuizManager = ({ documentId }) => {
       setNumQuestions(finalNum.toString()); // Reset to the validated string
       fetchQuizzes();
     } catch (error) {
-      toast.error(error.message || "Failed to generate quiz.");
+      const errorMsg = 
+          error?.response?.data?.error || 
+          error?.response?.data?.message || 
+          error?.message || 
+          "Failed to generate quiz. Please try again.";
+      
+      toast.error(errorMsg);
     } finally {
       setGenerating(false);
     }
