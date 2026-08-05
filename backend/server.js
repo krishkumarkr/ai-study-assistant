@@ -30,8 +30,7 @@ const allowedOrigins = [
     'http://localhost:5173', 
     'http://localhost:8000',
     'http://192.168.1.7:5173',
-    'https://krishkr.com',    
-    'https://www.krishkr.com'
+    'https://ailearn.krishkr.com'
 ];
 
 // Middleware to handle CORS

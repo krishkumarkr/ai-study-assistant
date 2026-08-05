@@ -1,6 +1,4 @@
-export const BASE_URL = import.meta.env.MODE === 'production'
-    ? "https://krishkr.com" 
-    : import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
+export const BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
 
 export const API_PATHS = {
     AUTH: {
