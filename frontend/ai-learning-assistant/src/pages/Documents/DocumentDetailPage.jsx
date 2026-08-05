@@ -7,7 +7,7 @@ import PageHeader from "../../components/common/PageHeader";
 import toast from "react-hot-toast";
 import { ArrowLeft, ExternalLink, FileWarning } from "lucide-react";
 import ChatInterface from "../../components/Chat/ChatInterface";
-import AIActions from "../../components/ai/AiActions";
+import AIActions from "../../components/ai/AIActions";
 import FlashcardManager from "../../components/flashcards/FlashcardManager";
 import QuizManager from "../../components/quizzes/QuizManager";
 import BackgroundGlow from "../../components/common/BackgroundGlow";
