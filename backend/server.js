@@ -26,12 +26,20 @@ const app = express();
 //Connect to MongoDB
 connectDB();
 
+const allowedOrigins = [
+    'http://localhost:5173', 
+    'http://localhost:8000',
+    'http://192.168.1.7:5173',
+    'https://krishkr.com',    
+    'https://www.krishkr.com'
+];
+
 // Middleware to handle CORS
 app.use(
     cors({
-        // This function dynamically allows localhost AND your phone's local network IP
         origin: function (origin, callback) {
-            if (!origin || origin.includes('localhost') || origin.includes('192.168.1.7')) {
+            // Allow requests with no origin (like Postman), or if they match the allowed list
+            if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('192.168.')) {
                 callback(null, true);
             } else {
                 callback(new Error('Not allowed by CORS'));
