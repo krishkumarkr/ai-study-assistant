@@ -1,0 +1,33 @@
+name: Deploy to Oracle VM
+
+on:
+  push:
+    branches:
+      - main # This triggers the workflow when you push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Execute deployment commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # 1. Navigate to the project folder
+            cd ~/ai-study-assistant
+            
+            # 2. Pull the latest code from GitHub
+            git pull origin main
+            
+            # 3. Destroy the old containers to prevent the ContainerConfig bug
+            sudo docker-compose down
+            
+            # 4. Rebuild and start the new containers
+            sudo docker-compose up -d --build
+            
+            # 5. Clean up old dangling images to save disk space
+            sudo docker image prune -f
