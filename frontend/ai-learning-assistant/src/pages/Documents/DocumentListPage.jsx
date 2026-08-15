@@ -40,6 +40,22 @@ const DocumentListPage = () => {
     fetchDocuments();
   }, []);
 
+  useEffect(() => {
+    // Check if any document is currently in 'processing' status
+    const isProcessing = documents.some((doc) => doc.status === "processing");
+
+    // If nothing is processing, go to sleep (saves network requests)
+    if (!isProcessing) return;
+
+    // If something IS processing, ping the backend every 3 seconds silently
+    const intervalId = setInterval(() => {
+      fetchDocuments(); // Silent background fetch, doesn't trigger full loading spinner
+    }, 3000);
+
+    // Cleanup interval when component unmounts or status changes to ready
+    return () => clearInterval(intervalId);
+  }, [documents]);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {

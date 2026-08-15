@@ -1,19 +1,34 @@
-// middleware/quotaTracker.js
 import User from '../models/User.js';
 
-// Define your generous free tier limits here
-const LIMITS = {
-    summaries: 10,
-    quizzes: 5,
-    flashcards: 5,
-    explanations: 15,
-    chats: 30
+export const getLimits = (email) => {
+    const admin_email = "krishkrsquare@gmail.com";
+
+    if (admin_email === email) {
+        return {
+            summaries: 999,
+            quizzes: 999,
+            flashcards: 999,
+            explanations: 999,
+            chats: 9999
+        };
+    } else {
+        return {
+            summaries: 3,
+            quizzes: 3,
+            flashcards: 3,
+            explanations: 10,
+            chats: 20
+        };
+    }
 };
 
 export const checkQuota = (feature) => {
     return async (req, res, next) => {
         try {
             const user = await User.findById(req.user._id);
+
+            // Fetch the exact limits for this specific user's email
+            const LIMITS = getLimits(user.email);
 
             // Check if we need to reset their daily limits
             const now = new Date();

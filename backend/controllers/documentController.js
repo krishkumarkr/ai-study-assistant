@@ -1,11 +1,13 @@
 import Document from '../models/Document.js';
 import Flashcard from '../models/Flashcard.js';
 import Quiz from '../models/Quiz.js';
+import ChatHistory from '../models/ChatHistory.js';
 import { extractTextFromPDF } from '../utils/pdfParser.js';
 import { chunkText } from '../utils/textChunker.js';
 import { uploadToR2, deleteFromR2 } from '../utils/r2Storage.js';
+import { generateEmbeddings } from '../utils/embeddingService.js';
+import Chunk from '../models/Chunk.js';
 import mongoose from 'mongoose';
-import ChatHistory from '../models/ChatHistory.js';
 
 // @desc    Upload PDF document
 // @route   POST /api/document/upload
@@ -30,7 +32,7 @@ export const uploadDocument = async (req, res, next) => {
             });
         }
 
-        // 2. EXTRACT TEXT & CHECK TOKEN DENSITY IMMEDIATELY
+        // 1. EXTRACT TEXT
         let extractedText = "";
         try {
             const parsed = await extractTextFromPDF(req.file.buffer);
@@ -43,7 +45,7 @@ export const uploadDocument = async (req, res, next) => {
             });
         }
 
-        // 3. THE TOKEN BOUNCER (Approx 30 pages)
+        // 2. CHARACTER BOUNCER (Approx 30 pages)
         const MAX_CHARACTERS = 100000;
 
         if (extractedText.length > MAX_CHARACTERS) {
@@ -54,11 +56,11 @@ export const uploadDocument = async (req, res, next) => {
             });
         }
 
-        // 4. NOW it is safe! Upload to Cloudflare R2
+        // 3. Upload to Cloudflare R2
         const publicFileUrl = await uploadToR2(req.file.buffer, req.file.originalname, req.file.mimetype);
         const uniqueFileName = publicFileUrl.split('/').pop();
 
-        // 5. Create document record in MongoDB
+        // 4. Create document record in MongoDB
         const document = await Document.create({
             userId: req.user._id,
             title,
@@ -68,15 +70,15 @@ export const uploadDocument = async (req, res, next) => {
             status: 'processing'
         });
 
-        // 6. Process chunking in background (pass the text, not the buffer)
-        processDocumentChunks(document._id, extractedText).catch(err => {
-            console.error('Text chunking error:', err);
+        // 5. Offload vector embedding process to background worker thread
+        processDocumentChunks(document._id, extractedText, req.user._id).catch(err => {
+            console.error('Text chunking & embedding error:', err);
         });
 
         res.status(201).json({
             success: true,
             data: document,
-            message: 'Document uploaded successfully. Processing in progress...'
+            message: 'Document uploaded successfully. Vector processing in progress...'
         });
 
     } catch (error) {
@@ -84,27 +86,42 @@ export const uploadDocument = async (req, res, next) => {
     }
 };
 
-// Helper function to process Chunks in the background
-// Renamed and updated to accept the already-extracted text
-const processDocumentChunks = async (documentId, text) => {
+// Helper function to chunk text and generate vector embeddings via worker thread
+const processDocumentChunks = async (documentId, text, userId) => {
     try {
-        // Create chunks
-        const chunks = chunkText(text, 500, 50);
+        // Step 1: Slice text into chunks
+        const rawChunks = chunkText(text, 500, 50);
+        const textArray = rawChunks.map(c => c.content);
 
-        // Update document
+        // Step 2: Pass text array to Worker Thread for CPU vector math (Cost: $0.00)
+        const vectors = await generateEmbeddings(textArray);
+
+        // Step 3: Pair raw text chunks with their generated 384-dim vector
+        const vectorChunks = rawChunks.map((chunk, index) => ({
+            documentId: documentId, // <-- Add reference
+            userId: userId,
+            content: chunk.content,
+            chunkIndex: chunk.chunkIndex,
+            pageNumber: chunk.pageNumber || 0,
+            embedding: vectors[index]
+        }));
+
+        // Step 4: Save vectors to the NEW collection using insertMany
+        await Chunk.insertMany(vectorChunks);
+
+        // Update parent document status
         await Document.findByIdAndUpdate(documentId, {
             extractedText: text,
-            chunks: chunks,
             status: 'ready'
         });
 
-        console.log(`Document ${documentId} chunked and processed successfully`);
+        console.log(`[Vector Engine] Document ${documentId} embedded successfully (${vectorChunks.length} chunks).`);
     } catch (error) {
-        console.error(`Error chunking document ${documentId}:`, error);
+        console.error(`[Vector Engine] Error embedding document ${documentId}:`, error);
 
         await Document.findByIdAndUpdate(documentId, {
             status: 'failed',
-            errorReason: 'Failed to process document content.'
+            errorReason: 'Failed to generate vector embeddings.'
         });
     }
 };
@@ -184,7 +201,6 @@ export const getDocument = async (req, res, next) => {
             });
         }
 
-        // Get counts of associated flashcards and quizzes
         const flashcardCount = await Flashcard.countDocuments({
             documentId: document._id,
             userId: req.user._id
@@ -195,11 +211,9 @@ export const getDocument = async (req, res, next) => {
             userId: req.user._id
         });
 
-        // Update last accessed
         document.lastAccessed = Date.now();
         await document.save();
 
-        // Combine document data with counts
         const documentData = document.toObject();
         documentData.flashcardCount = flashcardCount;
         documentData.quizCount = quizCount;
@@ -232,21 +246,16 @@ export const deleteDocument = async (req, res, next) => {
             });
         }
 
-        // 1. Extract just the filename from the R2 URL
         const fileName = document.filePath.split('/').pop();
 
-        // 2. Delete file from Cloudflare R2 bucket
         await deleteFromR2(fileName).catch((err) => {
             console.error(`Could not delete file from Cloudflare R2: ${fileName}`, err.message);
         });
 
-        // 3. CASCADING DELETES: Wipe out all orphaned data tied to this document!
-        // This ensures no "ghost" flashcards or quizzes are left behind.
         await Flashcard.deleteMany({ documentId: document._id });
         await Quiz.deleteMany({ documentId: document._id });
         await ChatHistory.deleteMany({ documentId: document._id });
 
-        // 4. Delete document from MongoDB
         await document.deleteOne();
 
         res.status(200).json({

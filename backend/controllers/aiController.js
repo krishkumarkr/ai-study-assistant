@@ -1,10 +1,11 @@
 import Document from '../models/Document.js';
+import Chunk from '../models/Chunk.js'; 
 import Flashcard from '../models/Flashcard.js';
 import Quiz from '../models/Quiz.js';
 import ChatHistory from '../models/ChatHistory.js';
-import User from '../models/User.js'; // ⬅️ NEW: Imported User model
-import * as geminiService from '../utils/geminiService.js';
-import { findRelevantChunks } from '../utils/textChunker.js';
+import User from '../models/User.js'; 
+import * as llmService from '../utils/llmService.js'; // ⬅️ NEW: The OpenRouter bridge
+import { generateEmbeddings } from '../utils/embeddingService.js'; 
 
 // ==========================================
 // CENTRALIZED AI ERROR HANDLER
@@ -66,7 +67,29 @@ export const generateFlashcards = async (req, res, next) => {
         const document = await Document.findOne({ _id: documentId, userId: req.user._id, status: 'ready' });
         if (!document) return res.status(404).json({ success: false, error: 'Document not found', statusCode: 404 });
 
-        const cards = await geminiService.generateFlashcards(document.extractedText, parseInt(count));
+        // 1. SECTIONAL SAMPLING: Do not dump 100 pages into the prompt.
+        const chunks = await Chunk.find({ documentId: document._id })
+                                  .select('content chunkIndex -_id')
+                                  .sort('chunkIndex');
+        
+        let sampledText = "";
+        if (chunks.length <= 6) {
+            sampledText = chunks.map(c => c.content).join('\n\n');
+        } else {
+            const step = Math.floor(chunks.length / 5);
+            const sampledChunks = [
+                chunks[0], 
+                chunks[step], 
+                chunks[step * 2], 
+                chunks[step * 3],
+                chunks[step * 4],
+                chunks[chunks.length - 1] 
+            ];
+            sampledText = sampledChunks.map(c => c.content).join('\n\n');
+        }
+
+        // 2. Route to Llama 3.1 8B
+        const cards = await llmService.generateFlashcards(sampledText, parseInt(count));
 
         const flashcardSet = await Flashcard.create({
             userId: req.user._id,
@@ -76,10 +99,8 @@ export const generateFlashcards = async (req, res, next) => {
             }))
         });
 
-        // CHARGE THE USER FOR FLASHCARDS
-        const user = await User.findById(req.user._id);
-        user.aiUsage.flashcards += 1;
-        await user.save();
+        // CHARGE THE USER FOR FLASHCARDS (Atomic Update)
+        await User.findByIdAndUpdate(req.user._id, { $inc: { 'aiUsage.flashcards': 1 } });
 
         res.status(201).json({ success: true, data: flashcardSet, message: 'Flashcards generated successfully' });
     } catch (error) {
@@ -98,7 +119,29 @@ export const generateQuiz = async (req, res, next) => {
         const document = await Document.findOne({ _id: documentId, userId: req.user._id, status: 'ready' });
         if (!document) return res.status(404).json({ success: false, error: 'Document not found', statusCode: 404 });
 
-        const questions = await geminiService.generateQuiz(document.extractedText, parseInt(numQuestions));
+        // 1. SECTIONAL SAMPLING
+        const chunks = await Chunk.find({ documentId: document._id })
+                                  .select('content chunkIndex -_id')
+                                  .sort('chunkIndex');
+        
+        let sampledText = "";
+        if (chunks.length <= 6) {
+            sampledText = chunks.map(c => c.content).join('\n\n');
+        } else {
+            const step = Math.floor(chunks.length / 5);
+            const sampledChunks = [
+                chunks[0], 
+                chunks[step], 
+                chunks[step * 2], 
+                chunks[step * 3],
+                chunks[step * 4],
+                chunks[chunks.length - 1] 
+            ];
+            sampledText = sampledChunks.map(c => c.content).join('\n\n');
+        }
+
+        // 2. Route to Llama 3.1 8B
+        const questions = await llmService.generateQuiz(sampledText, parseInt(numQuestions));
 
         const quiz = await Quiz.create ({
             userId: req.user._id,
@@ -110,10 +153,8 @@ export const generateQuiz = async (req, res, next) => {
             score: 0
         });
 
-        // CHARGE THE USER FOR QUIZ
-        const user = await User.findById(req.user._id);
-        user.aiUsage.quizzes += 1;
-        await user.save();
+        // CHARGE THE USER FOR QUIZ (Atomic Update)
+        await User.findByIdAndUpdate(req.user._id, { $inc: { 'aiUsage.quizzes': 1 } });
 
         res.status(201).json({ success: true, data: quiz, message: 'Quiz generated successfully' });
     } catch (error) {
@@ -132,7 +173,6 @@ export const generateSummary = async (req, res, next) => {
         const document = await Document.findOne({ _id: documentId, userId: req.user._id, status: 'ready' });
         if (!document) return res.status(404).json({ success: false, error: 'Document not found', statusCode: 404 });
 
-        // CACHE HIT: Do NOT charge the user if it's retrieved from DB
         if (document.summary) {
             return res.status(200).json({
                 success: true,
@@ -141,16 +181,21 @@ export const generateSummary = async (req, res, next) => {
             });
         }
 
-        // CACHE MISS: Generate via Gemini
-        const summary = await geminiService.generateSummary(document.extractedText);
+        // 1. RECONSTRUCT THE TEXT FROM CHUNKS
+        const chunks = await Chunk.find({ documentId: document._id })
+                                  .select('content -_id')
+                                  .sort('chunkIndex');
+                                  
+        const fullText = chunks.map(c => c.content).join('\n\n');
+
+        // 2. Route to Gemini 1.5 Flash (Handles large context windows)
+        const summary = await llmService.generateSummary(fullText);
 
         document.summary = summary;
         await document.save(); 
 
-        // CHARGE THE USER FOR SUMMARY
-        const user = await User.findById(req.user._id);
-        user.aiUsage.summaries += 1;
-        await user.save();
+        // CHARGE THE USER FOR SUMMARY (Atomic Update)
+        await User.findByIdAndUpdate(req.user._id, { $inc: { 'aiUsage.summaries': 1 } });
 
         res.status(200).json({
             success: true,
@@ -173,7 +218,35 @@ export const chat = async (req, res, next) => {
         const document = await Document.findOne({ _id: documentId, userId: req.user._id, status: 'ready' });
         if (!document) return res.status(404).json({ success: false, error: 'Document not found', statusCode: 404 });
 
-        const relevantChunks = findRelevantChunks(document.chunks, question, 3);
+        // Generate vector for the user's question locally
+        const [queryVector] = await generateEmbeddings([question]);
+
+        // Execute MongoDB Atlas Vector Search
+        const relevantChunks = await Chunk.aggregate([
+            {
+                $vectorSearch: {
+                    index: 'vector_index',
+                    path: 'embedding',
+                    queryVector: queryVector,
+                    numCandidates: 50, 
+                    limit: 3, 
+                    filter: { documentId: document._id }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    content: 1,
+                    chunkIndex: 1,
+                    score: { $meta: 'vectorSearchScore' }
+                }
+            }
+        ]);
+
+        if (!relevantChunks || relevantChunks.length === 0) {
+            return res.status(400).json({ success: false, error: 'No relevant information found in this document.', statusCode: 400 });
+        }
+
         const chunkIndices = relevantChunks.map(c => c.chunkIndex);
 
         let chatHistory = await ChatHistory.findOne({ userId: req.user._id, documentId: document._id });
@@ -181,7 +254,8 @@ export const chat = async (req, res, next) => {
             chatHistory = await ChatHistory.create({ userId: req.user._id, documentId: document._id, messages: [] });
         }
 
-        const answer = await geminiService.chatWithContext(question, relevantChunks);
+        // Route to Llama 3.3 70B
+        const answer = await llmService.chatWithContext(question, relevantChunks);
 
         chatHistory.messages.push(
             { role: 'user', content: question, timestamp: new Date(), relevantChunks: [] },
@@ -189,10 +263,8 @@ export const chat = async (req, res, next) => {
         );
         await chatHistory.save();
 
-        // CHARGE THE USER FOR CHAT
-        const user = await User.findById(req.user._id);
-        user.aiUsage.chats += 1;
-        await user.save();
+        // CHARGE THE USER FOR CHAT (Atomic Update)
+        await User.findByIdAndUpdate(req.user._id, { $inc: { 'aiUsage.chats': 1 } });
 
         res.status(200).json({
             success: true,
@@ -215,15 +287,42 @@ export const explainConcept = async (req, res, next) => {
         const document = await Document.findOne({ _id: documentId, userId: req.user._id, status: 'ready' });
         if(!document) return res.status(404).json({ success: false, error: 'Document not found', statusCode: 404 });
 
-        const relevantChunks = findRelevantChunks(document.chunks, concept, 3);
+        // Generate vector for the user's concept locally
+        const [queryVector] = await generateEmbeddings([concept]);
+
+        // Execute MongoDB Atlas Vector Search
+        const relevantChunks = await Chunk.aggregate([
+            {
+                $vectorSearch: {
+                    index: 'vector_index',
+                    path: 'embedding',
+                    queryVector: queryVector,
+                    numCandidates: 50,
+                    limit: 3,
+                    filter: { documentId: document._id }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    content: 1,
+                    chunkIndex: 1,
+                    score: { $meta: 'vectorSearchScore' }
+                }
+            }
+        ]);
+
+        if (!relevantChunks || relevantChunks.length === 0) {
+            return res.status(400).json({ success: false, error: 'No relevant information found in this document to explain this concept.', statusCode: 400 });
+        }
+
         const context = relevantChunks.map(c => c.content).join('\n\n');
+        
+        // Route to Gemini 1.5 Flash
+        const explanation = await llmService.explainConcept(concept, context);
 
-        const explanation = await geminiService.explainConcept(concept, context);
-
-        // CHARGE THE USER FOR EXPLANATION
-        const user = await User.findById(req.user._id);
-        user.aiUsage.explanations += 1;
-        await user.save();
+        // CHARGE THE USER FOR EXPLANATION (Atomic Update)
+        await User.findByIdAndUpdate(req.user._id, { $inc: { 'aiUsage.explanations': 1 } });
 
         res.status(200).json({
             success: true,

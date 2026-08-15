@@ -31,20 +31,6 @@ const documentSchema = new mongoose.Schema({
         type: String,
         default: null
     },
-    chunks: [{
-        content: {
-            type: String,
-            required: true
-        },
-        pageNumber: {
-            type: Number,
-            default: 0
-        },
-        chunkIndex: {
-            type: Number,
-            required: true
-        },
-    }],
     uploadDate: {
         type: Date,
         default: Date.now
@@ -62,9 +48,8 @@ const documentSchema = new mongoose.Schema({
     timestamps: true
 });
 
-//Index for faster queries
-documentSchema.index({ userId:1, documentId:1});
+// Fixed Index: Optimize queries finding documents by a specific user
+documentSchema.index({ userId: 1, createdAt: -1 });
 
 const Document = mongoose.model('Document', documentSchema);
-
 export default Document;

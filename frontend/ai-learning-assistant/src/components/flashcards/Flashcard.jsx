@@ -27,7 +27,7 @@ const Flashcard = ({ flashcard, onToggleStar }) => {
                     }}
                 >
                     {/* Header */}
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between shrink-0">
                         <div className="bg-white/5 border border-white/5 text-[10px] font-bold text-zinc-400 tracking-widest rounded-lg px-3 py-1.5 uppercase">
                             {flashcard?.difficulty || "Normal"}
                         </div>
@@ -50,15 +50,17 @@ const Flashcard = ({ flashcard, onToggleStar }) => {
                         </button>
                     </div>
 
-                    {/* Question Content */}
-                    <div className="flex-1 flex items-center justify-center px-4 py-6">
-                        <p className="text-xl md:text-2xl font-bold text-white text-center leading-relaxed tracking-tight">
+                    {/* Question Content (THE MOBILE FIX) */}
+                    {/* Removed items-center justify-center, added flex-col overflow-y-auto */}
+                    <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar px-4 py-6">
+                        {/* Added m-auto to perfectly center short text, while long text scrolls normally */}
+                        <p className="m-auto text-xl md:text-2xl font-bold text-white text-center leading-relaxed tracking-tight">
                             {flashcard.question}
                         </p>
                     </div>
 
                     {/* Flip Indicator */}
-                    <div className="flex items-center justify-center gap-2 text-xs text-zinc-500 font-bold uppercase tracking-widest">
+                    <div className="flex items-center justify-center gap-2 text-xs text-zinc-500 font-bold uppercase tracking-widest shrink-0">
                         <RotateCcw className="w-3.5 h-3.5" strokeWidth={2.5} />
                         <span>Click to reveal answer</span>
                     </div>
@@ -74,7 +76,7 @@ const Flashcard = ({ flashcard, onToggleStar }) => {
                     }}
                 >
                     {/* Header */}
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start shrink-0">
                         <div className="bg-emerald-500/20 text-[10px] font-bold text-emerald-400 tracking-widest rounded-lg px-3 py-1.5 uppercase">
                             Answer
                         </div>
@@ -97,15 +99,15 @@ const Flashcard = ({ flashcard, onToggleStar }) => {
                         </button>
                     </div>
 
-                    {/* Answer Content */}
-                    <div className="flex-1 flex items-center justify-center px-4 py-6 overflow-y-auto custom-scrollbar">
-                        <p className="text-lg text-emerald-50 text-center leading-relaxed font-medium">
+                    {/* Answer Content (THE MOBILE FIX) */}
+                    <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar px-4 py-6">
+                        <p className="m-auto text-lg text-emerald-50 text-center leading-relaxed font-medium">
                             {flashcard.answer}
                         </p>
                     </div>
 
                     {/* Flip Indicator */}
-                    <div className="flex items-center justify-center gap-2 text-xs text-emerald-500/50 font-bold uppercase tracking-widest mt-4">
+                    <div className="flex items-center justify-center gap-2 text-xs text-emerald-500/50 font-bold uppercase tracking-widest mt-4 shrink-0">
                         <RotateCcw className="w-3.5 h-3.5" strokeWidth={2.5} />
                         <span>Click to see question</span>
                     </div>

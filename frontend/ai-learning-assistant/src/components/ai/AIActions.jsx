@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
-import { Sparkles, BookOpen, Lightbulb, Loader2 } from "lucide-react";
+import { Sparkles, BookOpen, Lightbulb, Loader2 } from "lucide-react"; 
 import aiService from "../../services/aiService";
 import toast from "react-hot-toast";
 import MarkdownRenderer from "../common/MarkdownRenderer";
@@ -22,7 +22,6 @@ const AIActions = () => {
             setModalContent(response.data.summary);
             setIsModalOpen(true);
         } catch (error) {
-            // This perfectly catches the 403 quota or 429 rate limit messages!
             const errorMsg = error.response?.data?.error || error.response?.data?.message || "Failed to generate summary.";
             toast.error(errorMsg);
         } finally {
@@ -55,6 +54,8 @@ const AIActions = () => {
         setIsModalOpen(false);
         setTimeout(() => { setModalContent(""); setModalTitle(""); }, 300);
     };
+
+    const isAnyActionLoading = loadingAction !== null;
 
     return (
         <>
@@ -89,7 +90,7 @@ const AIActions = () => {
                         </div>
                         <button
                             onClick={handleGenerateSummary}
-                            disabled={loadingAction !== null}
+                            disabled={isAnyActionLoading}
                             className="w-full lg:w-auto shrink-0 lg:px-8 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-700 disabled:text-zinc-400 text-black rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-50 active:scale-[0.98] mt-2 lg:mt-0 flex items-center justify-center gap-2 shadow-lg"
                         >
                             {loadingAction === "summary" ? (
@@ -123,13 +124,13 @@ const AIActions = () => {
                                     type="text"
                                     value={concept}
                                     onChange={(e) => setConcept(e.target.value)}
-                                    placeholder="Enter concept (e.g., Database Indexing)..."
+                                    placeholder="write your concept here..."
+                                    disabled={isAnyActionLoading}
                                     className="flex-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-xs md:text-sm focus:outline-none focus:border-emerald-500/50 disabled:opacity-40 transition-all"
-                                    disabled={loadingAction !== null}
                                 />
                                 <button
                                     type="submit"
-                                    disabled={loadingAction !== null || !concept.trim()}
+                                    disabled={isAnyActionLoading}
                                     className="w-full md:w-auto shrink-0 md:px-8 py-3 bg-white/10 hover:bg-white text-white hover:text-black border border-white/5 rounded-xl font-bold text-xs md:text-sm transition-all disabled:opacity-30 disabled:bg-white/5 disabled:text-white active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
                                     {loadingAction === "explain" ? (

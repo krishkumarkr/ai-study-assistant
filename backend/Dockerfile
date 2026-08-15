@@ -8,6 +8,9 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
 
+# Download the AI model during the build phase so it lives inside the image
+RUN node scripts/downloadModel.js
+
 # Copy the rest of your backend code
 COPY . .
 

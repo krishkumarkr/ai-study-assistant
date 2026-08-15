@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { getLimits } from "../middleware/quotaTracker.js";
 
 //Generate JWT token
 const generateToken = (id) => {
@@ -135,6 +136,8 @@ export const getProfile = async (req, res, next) => {
                 profileImage: user.profileImage,
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
+                aiUsage: user.aiUsage,
+                limits: getLimits(user.email)
             },
         });
 

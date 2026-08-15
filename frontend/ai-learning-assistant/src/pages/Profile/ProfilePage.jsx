@@ -3,7 +3,8 @@ import PageHeader from "../../components/common/PageHeader";
 import Spinner from "../../components/common/Spinner";
 import authService from "../../services/authService";
 import toast from "react-hot-toast";
-import { User, Mail, Lock, ShieldCheck, Key } from "lucide-react";
+// Added Activity icon here
+import { User, Mail, Lock, ShieldCheck, Key, Activity } from "lucide-react"; 
 import BackgroundGlow from "../../components/common/BackgroundGlow";
 
 const ProfilePage = () => {
@@ -15,6 +16,10 @@ const ProfilePage = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  
+  // NEW: State for Limits
+  const [aiUsage, setAiUsage] = useState(null);
+  const [limits, setLimits] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -22,8 +27,14 @@ const ProfilePage = () => {
         const { data } = await authService.getProfile();
         setUsername(data.username);
         setEmail(data.email);
+        
+        // NEW: Grab the limits from the backend response
+        if (data.aiUsage && data.limits) {
+            setAiUsage(data.aiUsage);
+            setLimits(data.limits);
+        }
       } catch (error) {
-        toast.error("Failed to fetch profile data.");
+        toast.error(error.error || error.message || "Failed to fetch profile data.");
         console.error(error);
       } finally {
         setLoading(false);
@@ -50,7 +61,7 @@ const ProfilePage = () => {
       setNewPassword("");
       setConfirmNewPassword("");
     } catch (error) {
-      toast.error(error.message || "Failed to change password.");
+      toast.error(error.error || error.message || "Failed to change password.");
     } finally {
       setPasswordLoading(false);
     }
@@ -66,8 +77,6 @@ const ProfilePage = () => {
       </>
     );
   }
-
-  // ... (keep all your imports and state logic the same)
 
   return (
     <>
@@ -208,6 +217,55 @@ const ProfilePage = () => {
               </div>
             </form>
           </div>
+
+          {/* NEW: AI Generation Limits - Full width row */}
+          {aiUsage && limits && (
+            <div className="lg:col-span-12 bg-white/2 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+              <div className="flex items-center gap-3 mb-8 relative z-10">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <Activity size={18} strokeWidth={2} />
+                </div>
+                <h3 className="text-xl font-bold text-white tracking-tight">AI Generation Limits</h3>
+                <div className="ml-auto flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                  <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Resets every 24H</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-8 relative z-10">
+                {[
+                  { label: 'Chat Queries', used: aiUsage.chats, max: limits.chats },
+                  { label: 'Document Summaries', used: aiUsage.summaries, max: limits.summaries },
+                  { label: 'Flashcard Sets', used: aiUsage.flashcards, max: limits.flashcards },
+                  { label: 'Quizzes Generated', used: aiUsage.quizzes, max: limits.quizzes },
+                  { label: 'Concept Explanations', used: aiUsage.explanations, max: limits.explanations }
+                ].map((stat, index) => {
+                  const percent = Math.min(100, Math.round((stat.used / stat.max) * 100));
+                  const isMaxed = stat.used >= stat.max;
+
+                  return (
+                    <div key={index} className="w-full">
+                      <div className="flex justify-between items-center text-xs font-medium mb-3">
+                        <span className="text-zinc-500 uppercase tracking-widest font-bold">{stat.label}</span>
+                        <span className={isMaxed ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>
+                          {stat.used} <span className="text-zinc-600 font-medium">/ {stat.max}</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-1000 ${
+                            isMaxed 
+                              ? "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" 
+                              : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                          }`}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

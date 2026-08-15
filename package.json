@@ -5,6 +5,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
     "express-rate-limit": "^8.5.2",
-    "multer": "^2.2.0"
+    "multer": "^2.2.0",
+    "node-fetch": "^3.3.2"
   }
 }
