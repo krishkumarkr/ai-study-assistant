@@ -9,7 +9,7 @@
 
 Transform your PDFs into active learning tools. Upload your notes and this AI-powered, RAG-based platform turns them into instant flashcards, quizzes, and summaries — with an integrated chat interface grounded in your own documents.
 
-**Live demo:** Currently down for maintenance — link coming soon.
+**Live demo:** [ailearn.krishkr.com](https://ailearn.krishkr.com) — currently down for maintenance, back soon.
 
 ---
 
@@ -39,6 +39,7 @@ The backend handles document metadata, encrypted chat histories, and file storag
 | Layer | Technology |
 |---|---|
 | Stack | MERN (MongoDB, Express, React, Node.js) |
+| Frontend Tooling | Vite |
 | AI / LLM | OpenRouter AI API |
 | Retrieval (RAG) | Text-chunking with overlapping windows + MongoDB Atlas Vector Search (cosine similarity) |
 | File Storage | Cloudflare R2 (accessed via the S3-compatible AWS SDK client) |
@@ -114,7 +115,8 @@ docker-compose up --build
 
 4. **Access the app**
 
-The frontend will be available on `http://localhost` (port 80), with the backend API running internally on port `8000`.
+- **Production (Docker Compose)**: the frontend is served via Nginx on `http://localhost` (ports 80/443), with the backend API running internally on port `8000`.
+- **Local development**: running the frontend directly with `npm run dev` (Vite) serves it on `http://localhost:5173`, while the backend API runs on `http://localhost:8000`.
 
 ---
 
