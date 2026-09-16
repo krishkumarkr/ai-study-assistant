@@ -9,7 +9,7 @@
 
 Transform your PDFs into active learning tools. Upload your notes and this AI-powered, RAG-based platform turns them into instant flashcards, quizzes, and summaries — with an integrated chat interface grounded in your own documents.
 
-**Live demo:** [ailearn.krishkr.com](https://ailearn.krishkr.com) — currently down for maintenance, back soon.
+**Live:** [ailearn.krishkr.com](https://ailearn.krishkr.com)
 
 ---
 
