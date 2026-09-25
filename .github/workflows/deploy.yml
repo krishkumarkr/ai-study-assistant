@@ -16,12 +16,14 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 30m
           script: |
             # 1. Navigate to the project folder
             cd ~/ai-study-assistant
             
-            # 2. Pull the latest code from GitHub
-            git pull origin main
+            # 2. Force-sync with GitHub (avoids conflicts from local .env edits)
+            git fetch origin main
+            git reset --hard origin/main
             
             # 3. Destroy the old containers to prevent the ContainerConfig bug
             sudo docker-compose down
