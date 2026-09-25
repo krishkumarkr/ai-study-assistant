@@ -40,7 +40,7 @@ const DocumentDetailPage = () => {
     if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
       return filePath;
     }
-    const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:8000";
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
     return `${baseUrl}${filePath.startsWith("/") ? "" : "/"}${filePath}`;
   };
 
