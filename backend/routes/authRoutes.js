@@ -1,5 +1,5 @@
 import express from 'express';
-import {body} from 'express-validator';
+import {body, validationResult} from 'express-validator';
 import {
     register,
     login,
@@ -39,9 +39,22 @@ const loginValidation = [
         .withMessage('Password is required')
 ];
 
+// Middleware to check validation results and return 400 if errors exist
+const validate = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            error: errors.array().map(e => e.msg).join(', '),
+            statusCode: 400,
+        });
+    }
+    next();
+};
+
 //Public routes
-router.post('/register', registerValidation, register);
-router.post('/login', loginValidation, login);
+router.post('/register', registerValidation, validate, register);
+router.post('/login', loginValidation, validate, login);
 
 //Protected routes
 router.get('/profile', protect, getProfile);

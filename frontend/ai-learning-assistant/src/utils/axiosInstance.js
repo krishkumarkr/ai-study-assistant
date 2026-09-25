@@ -10,6 +10,9 @@ const axiosInstance = axios.create({
     },
 });
 
+// Auth endpoints that should NOT trigger auto-logout on 401
+const AUTH_ENDPOINTS = ['/api/auth/login', '/api/auth/register'];
+
 // Request Interceptor
 axiosInstance.interceptors.request.use(
     (config) => {
@@ -31,12 +34,29 @@ axiosInstance.interceptors.response.use(
     },
     (error) => {
         if (error.response) {
-            if(error.response.status === 500) {
-                console.error("Server error. Please try again later.");
+            const requestUrl = error.config?.url || '';
+            const isAuthEndpoint = AUTH_ENDPOINTS.some(ep => requestUrl.includes(ep));
+
+            if (error.response.status === 401 && !isAuthEndpoint) {
+                // Token expired/invalid on a protected route — auto-logout
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+                return Promise.reject(error);
             }
-        } else if (error.code === "ECONNABORTED") {
-            console.error("Request timeout. Please try again.");
+
+            // Rewrite error.message to be user-friendly before it reaches components
+            const serverError = error.response.data?.error;
+            if (serverError) {
+                error.message = serverError;
+            }
+
+        } else if (error.code === 'ECONNABORTED') {
+            error.message = 'Request timed out. Please check your connection and try again.';
+        } else if (!error.response) {
+            error.message = 'Unable to connect to the server. Please check your internet connection.';
         }
+
         return Promise.reject(error);
     }
 );

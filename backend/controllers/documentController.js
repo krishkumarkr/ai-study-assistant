@@ -252,6 +252,7 @@ export const deleteDocument = async (req, res, next) => {
             console.error(`Could not delete file from Cloudflare R2: ${fileName}`, err.message);
         });
 
+        await Chunk.deleteMany({ documentId: document._id });
         await Flashcard.deleteMany({ documentId: document._id });
         await Quiz.deleteMany({ documentId: document._id });
         await ChatHistory.deleteMany({ documentId: document._id });

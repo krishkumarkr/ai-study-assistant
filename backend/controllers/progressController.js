@@ -45,8 +45,25 @@ export const getDashboard = async (req, res, next) => {
             .populate('documentId', 'title')
             .select('title score totalQuestions completedAt');
         
-        // Study streak (simplified - in production, track daily activity) 
-        const studyStreak = Math.floor(Math.random() * 7) + 1; // Mock data
+        // Study streak: count consecutive recent days with quiz completions
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let studyStreak = 0;
+        for (let i = 0; i < 30; i++) {
+            const dayStart = new Date(today);
+            dayStart.setDate(dayStart.getDate() - i);
+            const dayEnd = new Date(dayStart);
+            dayEnd.setDate(dayEnd.getDate() + 1);
+            const hasActivity = await Quiz.exists({
+                userId,
+                completedAt: { $gte: dayStart, $lt: dayEnd }
+            });
+            if (hasActivity) {
+                studyStreak++;
+            } else if (i > 0) {
+                break; // streak broken
+            }
+        }
 
         res.status(200).json ({
             success: true,

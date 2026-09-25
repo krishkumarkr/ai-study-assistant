@@ -2,9 +2,9 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { getLimits } from "../middleware/quotaTracker.js";
 
-//Generate JWT token
+// Generate JWT token
 const generateToken = (id) => {
-    return jwt.sign({id}, process.env.JWT_SECRET, {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE || "7d",
     });
 };
@@ -14,16 +14,29 @@ const generateToken = (id) => {
 // @access  Public
 export const register = async (req, res, next) => {
     try {
-        const {username, email, password} = req.body
+        const { username, email, password } = req.body;
+
+        if (!username || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: "Please provide username, email, and password",
+                statusCode: 400,
+            });
+        }
+
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanUsername = username.trim();
 
         // Check if user exists
-        const userExists = await User.findOne({ $or: [{ email }, { username }] });
+        const userExists = await User.findOne({
+            $or: [{ email: cleanEmail }, { username: cleanUsername }],
+        });
 
-        if(userExists) {
+        if (userExists) {
             return res.status(400).json({
                 success: false,
                 error:
-                    userExists.email === email
+                    userExists.email === cleanEmail
                         ? "Email already registered"
                         : "Username already taken",
                 statusCode: 400,
@@ -32,15 +45,14 @@ export const register = async (req, res, next) => {
 
         // Create User
         const user = await User.create({
-            username,
-            email,
+            username: cleanUsername,
+            email: cleanEmail,
             password,
         });
 
-        // Generate token
         const token = generateToken(user._id);
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             data: {
                 user: {
@@ -48,13 +60,12 @@ export const register = async (req, res, next) => {
                     username: user.username,
                     email: user.email,
                     profileImage: user.profileImage,
-                    createdAt: user.createdAt
+                    createdAt: user.createdAt,
                 },
                 token,
             },
-            message: "User registed successfully",
+            message: "User registered successfully",
         });
-
     } catch (error) {
         next(error);
     }
@@ -67,54 +78,43 @@ export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
-        // Validate Input
-        if(!email || !password) {
+        if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                error:  "Please provide email and password",
+                error: "Please provide email and password",
                 statusCode: 400,
             });
         }
 
-        // Check for user (include password comparison)
-        const user = await User.findOne({ email }).select("+password");
+        const cleanEmail = email.trim().toLowerCase();
 
-        if(!user) {
+        // Find user by email
+        const user = await User.findOne({ email: cleanEmail }).select("+password");
+
+        // Generic error message for both non-existent user and bad password
+        if (!user || !(await user.matchPassword(password))) {
             return res.status(401).json({
                 success: false,
-                // error: "Invalid credentials",
-                error: "Email not registered",
+                error: "Invalid email or password",
                 statusCode: 401,
             });
         }
 
-        // Check password
-        const isMatch = await user.matchPassword(password);
-
-        if(!isMatch) {
-            return res.status(401).json({
-                success: false,
-                // error: "Invalid credentials",
-                error: "Incorrect password",
-                statusCode: 401,
-            });
-        }
-
-        // Generate token
         const token = generateToken(user._id);
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                profileImage: user.profileImage,
+            data: {
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    profileImage: user.profileImage,
+                },
+                token,
             },
-            token,
-            message: "Login Successful",
+            message: "Login successful",
         });
-
     } catch (error) {
         next(error);
     }
@@ -127,7 +127,15 @@ export const getProfile = async (req, res, next) => {
     try {
         const user = await User.findById(req.user._id);
 
-        res.status(200).json({
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found",
+                statusCode: 404,
+            });
+        }
+
+        return res.status(200).json({
             success: true,
             data: {
                 id: user._id,
@@ -137,10 +145,9 @@ export const getProfile = async (req, res, next) => {
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
                 aiUsage: user.aiUsage,
-                limits: getLimits(user.email)
+                limits: getLimits(user.email),
             },
         });
-
     } catch (error) {
         next(error);
     }
@@ -151,18 +158,26 @@ export const getProfile = async (req, res, next) => {
 // @access  Private
 export const updateProfile = async (req, res, next) => {
     try {
-        const  { username, email, profileImage } = req.body;
+        const { username, email, profileImage } = req.body;
 
         const user = await User.findById(req.user._id);
 
-        if(username) user.username = username;
-        if(email) user.email = email;
-        if(profileImage) user.profileImage = profileImage;
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found",
+                statusCode: 404,
+            });
+        }
+
+        if (username) user.username = username.trim();
+        if (email) user.email = email.trim().toLowerCase();
+        if (profileImage !== undefined) user.profileImage = profileImage;
 
         await user.save();
 
-        res.status(200).json({
-            success:true, 
+        return res.status(200).json({
+            success: true,
             data: {
                 id: user._id,
                 username: user.username,
@@ -171,7 +186,6 @@ export const updateProfile = async (req, res, next) => {
             },
             message: "Profile updated successfully",
         });
-
     } catch (error) {
         next(error);
     }
@@ -182,38 +196,51 @@ export const updateProfile = async (req, res, next) => {
 // @access  Private
 export const changePassword = async (req, res, next) => {
     try {
-        const {currentPassword, newPassword} = req.body;
+        const { currentPassword, newPassword } = req.body;
 
-        if(!currentPassword || !newPassword) {
-            req.status(400).json({
-                success:false,
-                error: "Please provide current and new password",
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                error: "Please provide both current and new password",
+                statusCode: 400,
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: "New password must be at least 6 characters long",
                 statusCode: 400,
             });
         }
 
         const user = await User.findById(req.user._id).select("+password");
 
-        // Check current password
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "User not found",
+                statusCode: 404,
+            });
+        }
+
         const isMatch = await user.matchPassword(currentPassword);
 
-        if(!isMatch) {
+        if (!isMatch) {
             return res.status(401).json({
                 success: false,
-                error: "Current Password is incorrect",
+                error: "Current password is incorrect",
                 statusCode: 401,
             });
         }
 
-        // Update password
         user.password = newPassword;
         await user.save();
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Password changed successfully",
         });
-
     } catch (error) {
         next(error);
     }

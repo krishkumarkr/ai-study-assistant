@@ -150,7 +150,7 @@ const AIActions = () => {
 
             {/* Results Modal */}
             <Modal isOpen={isModalOpen} onClose={closeModal} title={modalTitle}>
-                <div className="text-sm text-zinc-300 leading-relaxed pr-2 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="text-sm text-zinc-300 leading-relaxed pr-2">
                     <MarkdownRenderer content={modalContent} />
                 </div>
             </Modal>

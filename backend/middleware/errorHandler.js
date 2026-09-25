@@ -43,12 +43,18 @@ const errorHandler = (err, req, res, next) => {
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 
-    res.status(statusCode).json({
+    const responseBody = {
         success: false,
         error: message,
         statusCode,
-        ...(process.env.NODE_ENV === 'development' && {stack: err.stack})
-    });
+    };
+
+    // Only include stack trace when NODE_ENV is explicitly set to 'development'
+    if (process.env.NODE_ENV === 'development') {
+        responseBody.stack = err.stack;
+    }
+
+    res.status(statusCode).json(responseBody);
 };
 
 export default errorHandler;

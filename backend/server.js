@@ -36,7 +36,10 @@ const allowedOrigins = [
 app.use(
     cors({
         origin: function (origin, callback) {
-            if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('192.168.')) {
+            // In production, only allow exact origins; in dev, also allow localhost/LAN
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('192.168.'))) {
                 callback(null, true);
             } else {
                 callback(new Error('Not allowed by CORS'));
@@ -65,11 +68,12 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/progress', progressRoutes);
 
-app.use(errorHandler);
-
+// 404 catch-all (must be before errorHandler so unmatched routes are caught)
 app.use((req, res) => {
     res.status(404).json({ success: false, error: 'Route not found', statusCode: 404 });
 });
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {

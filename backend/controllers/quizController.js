@@ -201,10 +201,10 @@ export const getQuizResults = async (req, res, next) => {
         }).populate('documentId', 'title');
 
         if(!quiz) {
-            return res.status(400).json({
-                success:false,
+            return res.status(404).json({
+                success: false,
                 error: 'Quiz not found',
-                statusCode: 400
+                statusCode: 404
             });
         }
 
@@ -274,7 +274,7 @@ export const deleteQuiz = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            message: 'Quiz delete successfully',
+            message: 'Quiz deleted successfully',
             statusCode: 200
         });
 

@@ -49,7 +49,7 @@ const callOpenRouter = async (prompt, model, isJson = false) => {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                "HTTP-Referer": "https://yourwebsite.com", // Replace in production
+                "HTTP-Referer": process.env.APP_URL,
                 "X-Title": "AI Study Assistant",
                 "Content-Type": "application/json"
             },

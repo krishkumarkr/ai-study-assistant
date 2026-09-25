@@ -79,7 +79,7 @@ const DocumentCard = ({ document, onDelete }) => {
           {document.status === 'processing' && (
             <span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 uppercase tracking-wider bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20 animate-pulse">
               <Loader2 size={12} className="animate-spin" />
-              Processing Vectors
+              Processing
             </span>
           )}
 
