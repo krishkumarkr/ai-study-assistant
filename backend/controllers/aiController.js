@@ -4,8 +4,9 @@ import Flashcard from '../models/Flashcard.js';
 import Quiz from '../models/Quiz.js';
 import ChatHistory from '../models/ChatHistory.js';
 import User from '../models/User.js'; 
-import * as llmService from '../utils/llmService.js'; // ⬅️ NEW: The OpenRouter bridge
-import { generateEmbeddings } from '../utils/embeddingService.js'; 
+import * as llmService from '../utils/llmService.js';
+import { generateEmbeddings } from '../utils/embeddingService.js';
+import { buildSampleText } from '../utils/chunkSampler.js';
 
 // ==========================================
 // CENTRALIZED AI ERROR HANDLER
@@ -70,26 +71,31 @@ export const generateFlashcards = async (req, res, next) => {
         // 1. SECTIONAL SAMPLING: Do not dump 100 pages into the prompt.
         const chunks = await Chunk.find({ documentId: document._id })
                                   .select('content chunkIndex -_id')
-                                  .sort('chunkIndex');
-        
-        let sampledText = "";
-        if (chunks.length <= 6) {
-            sampledText = chunks.map(c => c.content).join('\n\n');
-        } else {
-            const step = Math.floor(chunks.length / 5);
-            const sampledChunks = [
-                chunks[0], 
-                chunks[step], 
-                chunks[step * 2], 
-                chunks[step * 3],
-                chunks[step * 4],
-                chunks[chunks.length - 1] 
-            ];
-            sampledText = sampledChunks.map(c => c.content).join('\n\n');
-        }
+                                  .sort('chunkIndex')
+                                  .lean();
 
-        // 2. Route to Llama 3.1 8B
-        const cards = await llmService.generateFlashcards(sampledText, parseInt(count));
+        const sampledText = buildSampleText(chunks);
+        const safeCount = Math.min(Math.max(parseInt(count, 10) || 10, 1), 20);
+        const cards = await llmService.generateFlashcards(sampledText, safeCount);
+                
+        // let sampledText = "";
+        // if (chunks.length <= 6) {
+        //     sampledText = chunks.map(c => c.content).join('\n\n');
+        // } else {
+        //     const step = Math.floor(chunks.length / 5);
+        //     const sampledChunks = [
+        //         chunks[0], 
+        //         chunks[step], 
+        //         chunks[step * 2], 
+        //         chunks[step * 3],
+        //         chunks[step * 4],
+        //         chunks[chunks.length - 1] 
+        //     ];
+        //     sampledText = sampledChunks.map(c => c.content).join('\n\n');
+        // }
+
+        // // 2. Route to Llama 3.1 8B
+        // const cards = await llmService.generateFlashcards(sampledText, parseInt(count));
 
         const flashcardSet = await Flashcard.create({
             userId: req.user._id,
@@ -122,26 +128,31 @@ export const generateQuiz = async (req, res, next) => {
         // 1. SECTIONAL SAMPLING
         const chunks = await Chunk.find({ documentId: document._id })
                                   .select('content chunkIndex -_id')
-                                  .sort('chunkIndex');
-        
-        let sampledText = "";
-        if (chunks.length <= 6) {
-            sampledText = chunks.map(c => c.content).join('\n\n');
-        } else {
-            const step = Math.floor(chunks.length / 5);
-            const sampledChunks = [
-                chunks[0], 
-                chunks[step], 
-                chunks[step * 2], 
-                chunks[step * 3],
-                chunks[step * 4],
-                chunks[chunks.length - 1] 
-            ];
-            sampledText = sampledChunks.map(c => c.content).join('\n\n');
-        }
+                                  .sort('chunkIndex')
+                                  .lean();
 
-        // 2. Route to Llama 3.1 8B
-        const questions = await llmService.generateQuiz(sampledText, parseInt(numQuestions));
+        const sampledText = buildSampleText(chunks);
+        const safeNum = Math.min(Math.max(parseInt(numQuestions, 10) || 5, 1), 15);
+        const questions = await llmService.generateQuiz(sampledText, safeNum);
+        
+        // let sampledText = "";
+        // if (chunks.length <= 6) {
+        //     sampledText = chunks.map(c => c.content).join('\n\n');
+        // } else {
+        //     const step = Math.floor(chunks.length / 5);
+        //     const sampledChunks = [
+        //         chunks[0], 
+        //         chunks[step], 
+        //         chunks[step * 2], 
+        //         chunks[step * 3],
+        //         chunks[step * 4],
+        //         chunks[chunks.length - 1] 
+        //     ];
+        //     sampledText = sampledChunks.map(c => c.content).join('\n\n');
+        // }
+
+        // // 2. Route to Llama 3.1 8B
+        // const questions = await llmService.generateQuiz(sampledText, parseInt(numQuestions));
 
         const quiz = await Quiz.create ({
             userId: req.user._id,
@@ -184,12 +195,13 @@ export const generateSummary = async (req, res, next) => {
         // 1. RECONSTRUCT THE TEXT FROM CHUNKS
         const chunks = await Chunk.find({ documentId: document._id })
                                   .select('content -_id')
-                                  .sort('chunkIndex');
+                                  .sort('chunkIndex')
+                                  .lean();
                                   
-        const fullText = chunks.map(c => c.content).join('\n\n');
+        // const fullText = chunks.map(c => c.content).join('\n\n');
 
         // 2. Route to Gemini 1.5 Flash (Handles large context windows)
-        const summary = await llmService.generateSummary(fullText);
+        const summary = await llmService.generateSummary(chunks);
 
         document.summary = summary;
         await document.save(); 

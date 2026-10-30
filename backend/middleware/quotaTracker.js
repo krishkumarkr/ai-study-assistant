@@ -13,7 +13,7 @@ export const getLimits = (email) => {
         };
     } else {
         return {
-            summaries: 3,
+            summaries: 10,
             quizzes: 3,
             flashcards: 3,
             explanations: 10,
